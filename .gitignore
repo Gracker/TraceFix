@@ -38,11 +38,9 @@ target
 *.ctxt
 *.ear
 *.iml
-*.jar
 *.keystore
 *.log
 *.nar
 *.rar
 *.tar.gz
 *.war
-*.zip
