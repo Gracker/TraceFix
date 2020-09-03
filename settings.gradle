@@ -1,0 +1,3 @@
+rootProject.name = 'TraceFix'
+include ':android-systrace-sample'
+include ':android-systrace-plugin'
