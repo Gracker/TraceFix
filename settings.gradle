@@ -1,3 +1,4 @@
+include ':andrdoi-systrace-sample-kt'
 rootProject.name = 'TraceFix'
 include ':android-systrace-sample'
 include ':android-systrace-plugin'
