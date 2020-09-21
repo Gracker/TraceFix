@@ -7,8 +7,17 @@ dependencies {
     implementation 'com.android.tools.build:gradle:4.0.1'
 }
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.novoda:bintray-release:0.9'
+    }
+}
+
 def versionName = "1.0"
-group "com.androidperf.tracefix"
+group "com.androidperf"
 version versionName
 
 repositories {
@@ -17,4 +26,4 @@ repositories {
     google()
 }
 
-apply from: rootProject.file('gradle/java-publish.gradle')
+apply from: rootProject.file('gradle/bintray-publich.gradle')
