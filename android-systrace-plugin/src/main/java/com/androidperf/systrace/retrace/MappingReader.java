@@ -26,9 +26,7 @@ public class MappingReader {
      * Reads the mapping file
      */
     public void read(MappingProcessor mappingProcessor) throws IOException {
-        LineNumberReader  reader = null;
-        try {
-            reader = new LineNumberReader(new BufferedReader(new FileReader(proguardMappingFile)));
+        try (LineNumberReader reader = new LineNumberReader(new BufferedReader(new FileReader(proguardMappingFile)))) {
             String className = null;
             // Read the class and class member mappings.
             while (true) {
@@ -50,15 +48,8 @@ public class MappingReader {
             }
         } catch (IOException err) {
             throw new IOException("Can't read mapping file", err);
-        } finally {
-            try {
-                if(reader != null) {
-                    reader.close();
-                }
-            } catch (IOException ex) {
-                // do nothing
-            }
         }
+        // do nothing
     }
 
     /**
