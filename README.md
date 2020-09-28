@@ -17,6 +17,7 @@ buildscript {
 
     dependencies {
         classpath("com.androidperf:tracefix:${TRACEFIX_VERSION}"){ changing = true }
+        implementation 'androidx.appcompat:appcompat:1.2.0'
     }
 }
 ```
@@ -41,8 +42,6 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 1. add white list and black list 
 3. init method opt
 4. disable get、set 
-5. upload plugin to maven center
-6. config github action 
 
 ## Module
 ### andrdoi-systrace-sample-kt 
