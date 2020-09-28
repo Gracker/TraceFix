@@ -39,9 +39,10 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 
 
 ## DOTO
-1. add white list and black list 
-3. init method opt
-4. disable get、set 
+1. Add white list and black list 
+2. Class name opt
+3. Init method opt
+4. Disable get、set 
 
 ## Module
 ### andrdoi-systrace-sample-kt 
