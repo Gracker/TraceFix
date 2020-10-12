@@ -4,6 +4,8 @@
 </p>
 
 # TraceFix
+TraceFix 是一款 Android 插件，主要功能是通过编译插桩的形式，丰富 App 进程在 Systrace 中的信息，方便开发在本地通过 Systrace 进行响应速度和流畅度的分析
+
 TraceFix 插件在 Android 项目编译的时候，在函数头和尾通过 ASM 插桩的形式插入 Trace 点，方便后续抓取 Systrace 的时候，可以看到比较丰富的信息，方便进行流畅度和响应速度的 Debug
 
 # Getting Started
