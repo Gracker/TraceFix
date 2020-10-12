@@ -1,6 +1,6 @@
 <p>
 <a href="README.md">English README.md</a>&nbsp;&nbsp;&nbsp;
-<a href="README_zh.md">中文 README_ZH.md</a>
+<a href="README_zh.md">中文 README_zh.md</a>
 </p>
 
 # TraceFix
