@@ -79,10 +79,12 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 # 插桩后代码差异 
 ## 使用 TraceFix 插件前
 App 代码
+
 ![Demo](/pic/before_trace_tag_add.png)
 
 ## 使用 TraceFix 插件后
 App 代码的出口和入口都有自动进行插桩
+
 ![Demo](/pic/after_trace_tag_add.png)
 
 # Systrace 结果展示
@@ -92,4 +94,6 @@ App 代码的出口和入口都有自动进行插桩
 ![Demo](/pic/systrace_demo.png)
 
 ## 实际项目
+可以看到插桩后，比原生的要多显示很多自己加的代码逻辑
+
 ![Demo](/pic/systrace_app.png)
