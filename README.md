@@ -49,23 +49,24 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 
 6. Open trace file on Chrome or https://ui.perfetto.dev/#!/viewer
 
-# DOTO
+# TODO
 1. Add white list and black list 
 2. Class name opt
 3. Init method opt
 4. Disable get、set 
+5. No-AndroidX opt
 
 # Module
-### andrdoi-systrace-sample-kt 
-demo module , just for test
+## android-systrace-sample-remote-debug 
+Demo module , just for remote test
 
-### andrdoi-systrace-sample
-demo module , just for test
+## android-systrace-sample-local-debug
+Demo module , just for local test
 
-### android-systrace-sample-jetpack
-demo module , just for test
+## android-systrace-sample-jetpack
+Demo module , just for test
 
-### android-systrace-plugin
+## android-systrace-plugin
 plugin module , add trace tag when entering a method and exiting a method
 
 # Code Change

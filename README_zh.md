@@ -51,17 +51,14 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 
 6. 在 Chrome 或者 https://ui.perfetto.dev/#!/viewer 打开 Systrace，找到对应的应用进程查看
 
-
 ## TODO
 1. 加入无 AndroidX 版本
 2. 加入完整包名
 3. 加入 Method Map 功能（防止混淆后没法对应）
-4. 改造项目，一个作为本地调试版本，一个作为远程发布调试版本
-5. 黑白名单控制功能
-6. Init 函数优化
-7. get、set 函数优化
-8. README 添加 CN 版本
-9. README 添加 Version 标志
+4. 黑白名单控制功能
+5. Init 函数优化
+6. get、set 函数优化
+7. README 添加 Version 标志
 
 # Module 说明
 ## android-systrace-sample-remote-debug
