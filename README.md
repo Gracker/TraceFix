@@ -1,3 +1,8 @@
+<p>
+<a href="README.md">English README.md</a>&nbsp;&nbsp;&nbsp;
+<a href="README_zh.md">中文 README_ZH.md</a>
+</p>
+
 # TraceFix
 Auto add  systrace Tag when project compiling 
 
@@ -27,7 +32,7 @@ buildscript {
 apply plugin: 'auto-add-systrace'
 ```
 
-4. Build and install apk , run systrace tools, package name is Needed！
+4. Build and install apk , run systrace tools, " -a your-package-name"  is Needed！
 ```
 python /path-to-your-systrace/systrace.py -a your-package-name
 

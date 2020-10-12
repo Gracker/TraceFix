@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'auto-add-systrace'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     buildToolsVersion "29.0.3"
 
     defaultConfig {
         applicationId "com.androidperformance.test"
         minSdkVersion 28
-        targetSdkVersion 29
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
@@ -22,6 +22,20 @@ android {
         }
     }
 }
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.androidperf:tracefix:${TRACEFIX_VERSION}"){ changing = true }
+    }
+}
+
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
