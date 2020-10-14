@@ -1,9 +1,9 @@
-package com.androidperf.systraceplug
+package com.androidperf.plugin
 
 import com.android.build.api.transform.*
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.internal.pipeline.TransformManager
-import com.androidperf.systrace.SystraceTagAdd
+import com.androidperf.systrace.TraceFixMethodTracer
 import com.androidperf.systrace.tools.LogTools
 import com.androidperf.systrace.tools.TraceBuildConfig
 import org.apache.commons.codec.digest.DigestUtils
@@ -14,9 +14,12 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 
+import java.util.concurrent.ExecutionException
+
 class TraceFixPlugin extends Transform implements Plugin<Project> {
     private static final String TAG = "TraceFixPlugin"
-    private TraceBuildConfig mTraceBuildConfig;
+    private TraceBuildConfig mTraceBuildConfig
+
     @Override
     void apply(Project project) {
         project.extensions.findByType(AppExtension.class).registerTransform(this)
@@ -44,9 +47,23 @@ class TraceFixPlugin extends Transform implements Plugin<Project> {
     }
 
     @Override
-    void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
+    void transform(TransformInvocation transformInvocation) throws TransformException,
+            InterruptedException, IOException {
         super.transform(transformInvocation)
         LogTools.i(TAG, "prepare transform ")
+        long start = System.currentTimeMillis()
+        try {
+            doTransform(transformInvocation)
+        } catch (ExecutionException e) {
+            e.printStackTrace()
+        }
+
+        LogTools.i(TAG, "[Transform] cost time: %dms ",
+                System.currentTimeMillis() - start)
+    }
+
+    private void doTransform(TransformInvocation transformInvocation) throws ExecutionException, InterruptedException {
+        final boolean isIncremental = transformInvocation.isIncremental() && this.isIncremental()
         transformInvocation.inputs.each {
             it.directoryInputs.each {
                 if (it.file.isDirectory()) {
@@ -57,7 +74,8 @@ class TraceFixPlugin extends Transform implements Plugin<Project> {
                         }
                     }
                 }
-                def dest = transformInvocation.outputProvider.getContentLocation(it.name, it.contentTypes, it.scopes, Format.DIRECTORY)
+                def dest = transformInvocation.outputProvider.getContentLocation(it.name,
+                        it.contentTypes, it.scopes, Format.DIRECTORY)
                 FileUtils.copyDirectory(it.file, dest)
             }
             it.jarInputs.each { jarInput ->
@@ -71,18 +89,19 @@ class TraceFixPlugin extends Transform implements Plugin<Project> {
                 FileUtils.copyFile(jarInput.file, dest)
             }
         }
+
     }
 
     private static void handleFile(File file) {
         def cr = new ClassReader(file.bytes)
         def cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS)
-        def classVisitor = new SystraceTagAdd(Opcodes.ASM5, cw)
+        def classVisitor = new TraceFixMethodTracer(Opcodes.ASM5, cw)
         cr.accept(classVisitor, ClassReader.EXPAND_FRAMES)
         def bytes = cw.toByteArray()
-        FileOutputStream fos = new FileOutputStream(file.getParentFile().getAbsolutePath() + File.separator + file.name)
+        FileOutputStream fos = new FileOutputStream(file.getParentFile().getAbsolutePath()
+                + File.separator + file.name)
         fos.write(bytes)
         fos.close()
     }
-
 
 }

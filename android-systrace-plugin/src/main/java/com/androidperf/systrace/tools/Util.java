@@ -15,8 +15,8 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 public final class Util {
-    private static final String TAG         = "Util";
-    public static final  int    BUFFER_SIZE = 16384;
+    public static final int BUFFER_SIZE = 16384;
+    private static final String TAG = "Util";
 
     private Util() {
     }
@@ -82,8 +82,7 @@ public final class Util {
     /**
      * Close {@code target} quietly.
      *
-     * @param obj
-     *  Object to be closed.
+     * @param obj Object to be closed.
      */
     public static void closeQuietly(Object obj) {
         if (obj == null) {

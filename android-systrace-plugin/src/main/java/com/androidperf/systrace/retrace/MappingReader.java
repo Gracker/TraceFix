@@ -22,9 +22,6 @@ public class MappingReader {
         this.proguardMappingFile = proguardMappingFile;
     }
 
-    /**
-     * Reads the mapping file
-     */
     public void read(MappingProcessor mappingProcessor) throws IOException {
         try (LineNumberReader reader = new LineNumberReader(new BufferedReader(new FileReader(proguardMappingFile)))) {
             String className = null;
@@ -53,7 +50,7 @@ public class MappingReader {
     }
 
     /**
-     * @param line read content
+     * @param line             read content
      * @param mappingProcessor
      * @return
      */

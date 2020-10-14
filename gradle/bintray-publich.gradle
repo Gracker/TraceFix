@@ -8,7 +8,7 @@ publish {
     //要发布的插件的标识
     artifactId = 'tracefix'
     //要发布的插件版本
-    publishVersion = '0.0.2'
+    publishVersion = '0.0.3'
     //描述
     desc = 'a plugin to shell apk'
     //对应的网址，如果项目代码放在github上，可以填写github中的项目地址

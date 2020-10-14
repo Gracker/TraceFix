@@ -4,6 +4,7 @@ public class TraceBuildConfig {
 
     /**
      * whether it need to trace by class filename
+     *
      * @param fileName fileName
      * @return isNeed
      */

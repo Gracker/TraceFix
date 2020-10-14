@@ -9,19 +9,20 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.AdviceAdapter;
 
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class SystraceTagAdd extends ClassVisitor {
-    private String mClassName;
-    private boolean isABSClass = false;
-    private String[] mInterfaces;
-
+public class TraceFixMethodTracer extends ClassVisitor {
     private final HashMap<String, TraceMethod> mCollectedMethodMap;
     private final HashMap<String, TraceMethod> mCollectedIgnoreMethodMap;
     private final HashMap<String, TraceMethod> mCollectedBlackMethodMap;
     private final HashMap<String, String> mCollectedClassExtendMap;
+    private final boolean isActivityOrSubClass = false;
+    private String mClassName;
+    private boolean isABSClass = false;
+    private String[] mInterfaces;
+    private boolean hasWindowFocusMethod = false;
 
-
-    public SystraceTagAdd(int api, ClassVisitor cv) {
+    public TraceFixMethodTracer(int api, ClassVisitor cv) {
         super(Opcodes.ASM5, cv);
         this.mCollectedMethodMap = new HashMap<>();
         this.mCollectedClassExtendMap = new HashMap<>();
@@ -34,25 +35,30 @@ public class SystraceTagAdd extends ClassVisitor {
                       String superName, String[] interfaces) {
         System.out.println("LifecycleClassVisitor : visit -----> started : " + name);
         super.visit(version, access, name, signature, superName, interfaces);
-        this.mClassName = name;
+        this.mClassName = name.replace("/", ".");
         if ((access & Opcodes.ACC_ABSTRACT) > 0 || (access & Opcodes.ACC_INTERFACE) > 0) {
             this.isABSClass = true;
         }
         mCollectedClassExtendMap.put(mClassName, superName);
         mInterfaces = interfaces;
+//        this.isActivityOrSubClass = isActivityOrSubClass(mClassName, mCollectedClassExtendMap);
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        System.out.println("LifecycleClassVisitor : visitMethod : " + name);
+        System.out.println("LifecycleClassVisitor : visitMethod -----> " + name);
         if (isABSClass) {
             return super.visitMethod(access, name, desc, signature, exceptions);
         } else {
+            if (!hasWindowFocusMethod) {
+                hasWindowFocusMethod = TraceMethod.isWindowFocusChangeMethod(name, desc);
+            }
             MethodVisitor methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
             methodVisitor = new AdviceAdapter(Opcodes.ASM5, methodVisitor, access, name, desc) {
                 @Override
                 protected void onMethodEnter() {
-                    String sectionName = name;
+                    String sectionName = mClassName + "." + name;
+                    System.out.println("LifecycleClassVisitor : onMethodEnter : " + sectionName);
                     int length = sectionName.length();
                     if (length > Constants.MAX_SECTION_NAME_LEN) {
                         int parmIndex = sectionName.indexOf('(');
@@ -78,4 +84,47 @@ public class SystraceTagAdd extends ClassVisitor {
             return methodVisitor;
         }
     }
+
+    @Override
+    public void visitEnd() {
+//        if (!hasWindowFocusMethod && isActivityOrSubClass && isNeedTrace) {
+//            insertWindowFocusChangeMethod(cv, className);
+//        }
+        super.visitEnd();
+    }
+
+    private void insertWindowFocusChangeMethod(ClassVisitor cv, String classname) {
+        MethodVisitor methodVisitor = cv.visitMethod(Opcodes.ACC_PUBLIC, Constants.WINDOW_FOCUS_METHOD,
+                Constants.WINDOW_FOCUS_METHOD_ARGS, null, null);
+        methodVisitor.visitCode();
+        methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
+        methodVisitor.visitVarInsn(Opcodes.ILOAD, 1);
+        methodVisitor.visitMethodInsn(Opcodes.INVOKESPECIAL,
+                Constants.ACTIVITY_CLASS,
+                Constants.WINDOW_FOCUS_METHOD,
+                Constants.WINDOW_FOCUS_METHOD_ARGS,
+                false);
+        //traceWindowFocusChangeMethod(methodVisitor, classname);
+        methodVisitor.visitInsn(Opcodes.RETURN);
+        methodVisitor.visitMaxs(2, 2);
+        methodVisitor.visitEnd();
+    }
+
+    private boolean isActivityOrSubClass(String className, ConcurrentHashMap<String, String> mCollectedClassExtendMap) {
+        className = className.replace(".", "/");
+        boolean isActivity = className.equals(Constants.ACTIVITY_CLASS)
+                || className.equals(Constants.V4_ACTIVITY_CLASS)
+                || className.equals(Constants.V7_ACTIVITY_CLASS);
+        if (isActivity) {
+            return true;
+        } else {
+            if (!mCollectedClassExtendMap.containsKey(className)) {
+                return false;
+            } else {
+                return isActivityOrSubClass(mCollectedClassExtendMap.get(className), mCollectedClassExtendMap);
+            }
+        }
+    }
+
+
 }

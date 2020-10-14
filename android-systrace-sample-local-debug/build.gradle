@@ -25,14 +25,14 @@ android {
 
 buildscript {
     repositories {
+        mavenLocal()
         google()
         jcenter()
-        mavenLocal()
         mavenCentral()
     }
 
     dependencies {
-        classpath("com.androidperf:tracefix:${TRACEFIX_VERSION}"){ changing = true }
+        classpath("com.androidperf:tracefix:${TRACEFIX_VERSION_DEBUG}"){ changing = true }
     }
 }
 

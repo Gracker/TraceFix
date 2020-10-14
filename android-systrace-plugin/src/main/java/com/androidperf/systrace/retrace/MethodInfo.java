@@ -46,12 +46,24 @@ public class MethodInfo {
         return originalType;
     }
 
+    public void setOriginalType(String originalType) {
+        this.originalType = originalType;
+    }
+
     public String getOriginalName() {
         return originalName;
     }
 
+    public void setOriginalName(String originalName) {
+        this.originalName = originalName;
+    }
+
     public String getOriginalArguments() {
         return originalArguments;
+    }
+
+    public void setOriginalArguments(String originalArguments) {
+        this.originalArguments = originalArguments;
     }
 
     public String getDesc() {
@@ -60,17 +72,5 @@ public class MethodInfo {
 
     public void setDesc(String desc) {
         this.desc = desc;
-    }
-
-    public void setOriginalName(String originalName) {
-        this.originalName = originalName;
-    }
-
-    public void setOriginalArguments(String originalArguments) {
-        this.originalArguments = originalArguments;
-    }
-
-    public void setOriginalType(String originalType) {
-        this.originalType = originalType;
     }
 }

@@ -11,10 +11,10 @@ import java.util.Set;
 public class MappingCollector implements MappingProcessor {
     private final static String TAG = "MappingCollector";
     private final static int DEFAULT_CAPACITY = 2000;
-    public HashMap<String, String> mObfuscatedRawClassMap = new HashMap<>(DEFAULT_CAPACITY);
-    public HashMap<String, String> mRawObfuscatedClassMap = new HashMap<>(DEFAULT_CAPACITY);
     private final Map<String, Map<String, Set<MethodInfo>>> mObfuscatedClassMethodMap = new HashMap<>();
     private final Map<String, Map<String, Set<MethodInfo>>> mOriginalClassMethodMap = new HashMap<>();
+    public HashMap<String, String> mObfuscatedRawClassMap = new HashMap<>(DEFAULT_CAPACITY);
+    public HashMap<String, String> mRawObfuscatedClassMap = new HashMap<>(DEFAULT_CAPACITY);
 
     @Override
     public boolean processClassMapping(String className, String newClassName) {
@@ -72,7 +72,7 @@ public class MappingCollector implements MappingProcessor {
     /**
      * get original method info
      *
-     * @param obfuscatedClassName obfuscatedClassName
+     * @param obfuscatedClassName  obfuscatedClassName
      * @param obfuscatedMethodName obfuscatedMethodName
      * @param obfuscatedMethodDesc obfuscatedMethodDesc
      * @return defaultMethodInfo
@@ -107,9 +107,9 @@ public class MappingCollector implements MappingProcessor {
     /**
      * get obfuscated method info
      *
-     * @param originalClassName originalClassName
+     * @param originalClassName  originalClassName
      * @param originalMethodName originalMethodName
-     * @param originalMethodDesc  originalMethodDesc
+     * @param originalMethodDesc originalMethodDesc
      * @return defaultMethodInfo
      */
     public MethodInfo obfuscatedMethodInfo(String originalClassName, String originalMethodName, String originalMethodDesc) {

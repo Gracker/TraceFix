@@ -1,4 +1,5 @@
 package com.androidperf.systrace.tools;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 

@@ -2,6 +2,7 @@ package com.androidperf.systrace.method;
 
 import com.androidperf.systrace.retrace.MappingCollector;
 import com.androidperf.systrace.retrace.MethodInfo;
+import com.androidperf.systrace.tools.Constants;
 import com.androidperf.systrace.tools.Util;
 
 import org.objectweb.asm.Opcodes;
@@ -23,6 +24,13 @@ public class TraceMethod {
         traceMethod.methodName = methodName;
         traceMethod.desc = desc.replace("/", ".");
         return traceMethod;
+    }
+
+    public static boolean isWindowFocusChangeMethod(String name, String desc) {
+        return null != name
+                && null != desc
+                && name.equals(Constants.WINDOW_FOCUS_METHOD)
+                && desc.equals(Constants.WINDOW_FOCUS_METHOD_ARGS);
     }
 
     public String getMethodName() {
@@ -70,7 +78,6 @@ public class TraceMethod {
         return Type.getReturnType(desc).toString();
     }
 
-
     @Override
     public String toString() {
         if (desc == null || isNativeMethod()) {
@@ -106,4 +113,5 @@ public class TraceMethod {
     public int hashCode() {
         return super.hashCode();
     }
+
 }

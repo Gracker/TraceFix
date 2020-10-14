@@ -4,7 +4,7 @@ apply plugin: 'maven'
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
-    implementation 'com.android.tools.build:gradle:4.0.1'
+    implementation 'com.android.tools.build:gradle:4.1.0'
 }
 
 buildscript {
@@ -27,3 +27,4 @@ repositories {
 }
 
 apply from: rootProject.file('gradle/bintray-publich.gradle')
+//apply from: rootProject.file('gradle/java-publish.gradle')

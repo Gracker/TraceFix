@@ -26,8 +26,6 @@ publishing {
 
 
 task buildAndPublishToLocalMaven(type: Copy, dependsOn: ['build', 'publishToMavenLocal']) {
-    group = 'perf'
-
     // save artifacts files to artifacts folder
     from configurations.archives.allArtifacts.files
     into "${rootProject.buildDir}/outputs/artifacts/"
