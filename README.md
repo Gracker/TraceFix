@@ -9,7 +9,7 @@ Auto add  systrace Tag when project compiling
 # Getting Started
 1. Configure TRACEFIX_VERSION in gradle.properties.
 ```
-TRACEFIX_VERSION=0.0.2
+TRACEFIX_VERSION=0.0.3
 ```
 
 2. Add matrix-gradle-plugin in your build.gradle(Root project or module, Make sure it looks like below):
