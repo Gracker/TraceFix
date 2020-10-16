@@ -33,7 +33,7 @@ public class TraceFixMethodTracer extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature,
                       String superName, String[] interfaces) {
-        System.out.println("LifecycleClassVisitor : visit -----> started : " + name);
+        System.out.println("TraceFixClassVisitor : visit -----> started : " + name);
         super.visit(version, access, name, signature, superName, interfaces);
         this.mClassName = name.replace("/", ".");
         if ((access & Opcodes.ACC_ABSTRACT) > 0 || (access & Opcodes.ACC_INTERFACE) > 0) {
@@ -46,7 +46,7 @@ public class TraceFixMethodTracer extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        System.out.println("LifecycleClassVisitor : visitMethod -----> " + name);
+        System.out.println("TraceFixClassVisitor : visitMethod -----> " + name);
         if (isABSClass) {
             return super.visitMethod(access, name, desc, signature, exceptions);
         } else {
@@ -58,15 +58,10 @@ public class TraceFixMethodTracer extends ClassVisitor {
                 @Override
                 protected void onMethodEnter() {
                     String sectionName = mClassName + "." + name;
-                    System.out.println("LifecycleClassVisitor : onMethodEnter : " + sectionName);
+                    System.out.println("TraceFixClassVisitor : onMethodEnter : " + sectionName);
                     int length = sectionName.length();
                     if (length > Constants.MAX_SECTION_NAME_LEN) {
-                        int parmIndex = sectionName.indexOf('(');
-                        sectionName = sectionName.substring(0, parmIndex);
-                        length = sectionName.length();
-                        if (length > Constants.MAX_SECTION_NAME_LEN) {
-                            sectionName = sectionName.substring(length - Constants.MAX_SECTION_NAME_LEN);
-                        }
+                        sectionName = sectionName.substring(length - Constants.MAX_SECTION_NAME_LEN);
                     }
                     mv.visitLdcInsn(sectionName);
                     mv.visitMethodInsn(INVOKESTATIC, Constants.DEFAULT_TRACE_METHOD_BEAT_CLASS,

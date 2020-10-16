@@ -10,4 +10,5 @@ public class Test {
     public void test2() {
         TraceCompat.endSection();
     }
+
 }
