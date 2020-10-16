@@ -11,7 +11,7 @@ TraceFix 插件在 Android 项目编译的时候，在函数头和尾通过 ASM 
 # Getting Started
 1. 在 Android Studio 的项目的 gradle.properties 中配置 TRACEFIX_VERSION 
 ```
-TRACEFIX_VERSION=0.0.3
+TRACEFIX_VERSION=0.0.4
 ```
 
 2. 在需要插桩的 Module 的 build.gradle 添加插件 com.androidperf:tracefix 信息，（如果 Module 里面没有 buildscript ，可以加到 root 目录下面的 build.gradle 中，或者在子 Module 里面复制粘贴下面内容到 build.gradle 文件中 ）点击 Sync

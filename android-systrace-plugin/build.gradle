@@ -26,5 +26,5 @@ repositories {
     google()
 }
 
-//apply from: rootProject.file('gradle/bintray-publich.gradle')
-apply from: rootProject.file('gradle/java-publish.gradle')
+apply from: rootProject.file('gradle/bintray-publich.gradle')
+//apply from: rootProject.file('gradle/java-publish.gradle')
