@@ -197,6 +197,24 @@ public class PlayerFragment extends BaseFragment {
     // 也即，有绑定就有绑定，没绑定也没什么大不了的，总之 不会因一致性问题造成 视图调用的空指针。
     // 如果这么说还不理解的话，详见 https://xiaozhuanlan.com/topic/9816742350
 
+    public static class EventHandler implements SeekBar.OnSeekBarChangeListener {
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            PlayerManager.getInstance().setSeek(seekBar.getProgress());
+        }
+    }
+
     public class ClickProxy {
 
         public void playMode() {
@@ -224,24 +242,6 @@ public class PlayerFragment extends BaseFragment {
         }
 
         public void more() {
-        }
-    }
-
-    public static class EventHandler implements SeekBar.OnSeekBarChangeListener {
-
-        @Override
-        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-
-        }
-
-        @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-
-        }
-
-        @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-            PlayerManager.getInstance().setSeek(seekBar.getProgress());
         }
     }
 

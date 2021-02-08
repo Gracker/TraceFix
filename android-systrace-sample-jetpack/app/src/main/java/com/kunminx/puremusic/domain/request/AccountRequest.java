@@ -17,15 +17,13 @@
 package com.kunminx.puremusic.domain.request;
 
 
-import android.text.TextUtils;
-
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.kunminx.architecture.data.repository.DataResult;
 import com.kunminx.architecture.domain.request.BaseRequest;
 import com.kunminx.puremusic.data.bean.User;
 import com.kunminx.puremusic.data.repository.DataRepository;
-import com.kunminx.architecture.data.repository.DataResult;
 
 /**
  * 信息列表 Request

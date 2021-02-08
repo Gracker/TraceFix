@@ -74,12 +74,6 @@ public class PlayerSlideListener implements SlidingUpPanelLayout.PanelSlideListe
     private int playPauseDrawableColor;
     private Status mStatus = Status.COLLAPSED;
 
-    public enum Status {
-        EXPANDED,
-        COLLAPSED,
-        FULLSCREEN
-    }
-
     public PlayerSlideListener(FragmentPlayerBinding binding, SlidingUpPanelLayout slidingUpPanelLayout) {
         mBinding = binding;
         mSlidingUpPanelLayout = slidingUpPanelLayout;
@@ -286,6 +280,12 @@ public class PlayerSlideListener implements SlidingUpPanelLayout.PanelSlideListe
         mBinding.artist.startAnimation(contentAnimation);
 
         mStatus = Status.EXPANDED;
+    }
+
+    public enum Status {
+        EXPANDED,
+        COLLAPSED,
+        FULLSCREEN
     }
 
 

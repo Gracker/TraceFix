@@ -16,8 +16,6 @@
 
 package com.kunminx.puremusic;
 
-import android.util.Log;
-
 import com.kunminx.architecture.BaseApplication;
 import com.kunminx.architecture.utils.Utils;
 import com.kunminx.puremusic.player.PlayerManager;

@@ -27,14 +27,12 @@ import com.kunminx.puremusic.data.bean.TestAlbum;
  */
 public class DiffUtils {
 
+    private static DiffUtils sDiffUtils = new DiffUtils();
     private DiffUtil.ItemCallback<LibraryInfo> mLibraryInfoItemCallback;
-
     private DiffUtil.ItemCallback<TestAlbum.TestMusic> mTestMusicItemCallback;
 
     private DiffUtils() {
     }
-
-    private static DiffUtils sDiffUtils = new DiffUtils();
 
     public static DiffUtils getInstance() {
         return sDiffUtils;
