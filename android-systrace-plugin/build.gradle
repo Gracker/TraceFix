@@ -10,22 +10,25 @@ dependencies {
 
 buildscript {
     repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.novoda:bintray-release:0.9'
+        mavenCentral()
+        mavenLocal()
     }
 }
-
-def versionName = "1.0"
-group "com.androidperf"
-version versionName
 
 repositories {
     mavenLocal()
-    jcenter()
     google()
+    mavenCentral()
 }
 
-apply from: rootProject.file('gradle/bintray-publich.gradle')
-//apply from: rootProject.file('gradle/java-publish.gradle')
+ext {
+    bintrayName = 'TraceFix'				//bintray用户名
+    artifact = bintrayName
+    libraryName = 'TraceFix'
+    libraryDescription = 'Auto add Systrace tag while building apk'
+    libraryVersion = '0.0.5'
+}
+
+
+apply from: '../gradle/maven-publish.gradle'   // For remote publish
+//apply from: rootProject.file('gradle/java-publish.gradle')  // For local publish

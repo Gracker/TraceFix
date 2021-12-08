@@ -1,0 +1,113 @@
+if (project.hasProperty("android")) { // Android libraries
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    task javadoc(type: Javadoc) {
+        // https://github.com/novoda/bintray-release/issues/71
+        excludes = ['**/*.kt'] // < ---- Exclude all kotlin files from javadoc file.
+        source = android.sourceSets.main.java.srcDirs
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+        options.encoding = "utf-8"
+        options.charSet = "utf-8"
+    }
+} else { // Java libraries
+    task sourcesJar(type: Jar, dependsOn: classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+}
+
+// 强制 Java/JavaDoc 等的编码为 UTF-8
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = "UTF-8"
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+// add javadoc/source jar tasks as artifacts
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+def ossrhUsername = properties.getProperty("ossrhUsername")
+def ossrhPassword = properties.getProperty("ossrhPassword")
+
+def PUBLISH_GROUP_ID = publishedGroupId //这里可以不是直接申请时候的groupId只要开头是就可以
+
+def PUBLISH_ARTIFACT_ID = artifact
+
+def PUBLISH_VERSION = libraryVersion // android.defaultConfig.versionName //这个是直接获取的库gradle里配置好的版本号，不用到处修改版本号，只需要维护一份就可以。
+
+//签名
+signing {
+    required { gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.groupId = PUBLISH_GROUP_ID
+            pom.artifactId = PUBLISH_ARTIFACT_ID
+            pom.version = PUBLISH_VERSION
+
+            pom.project {
+                packaging 'aar' //我这里发布的是安卓的包，所有写的aar
+
+                name libraryName // '发布库的简单名称'
+                // optionally artifactId can be defined here
+                description libraryDescription // '发布包的描述'
+                url siteUrl // '可以写公司官网地址或github个人页面地址'
+
+                scm {
+                    connection gitUrl // 'scm:替换成项目git地址'
+                    developerConnection gitUrl // 'scm:替换为git开头的项目地址'
+                    url siteUrl // '项目首页，可以是github项目的主页'
+                }
+
+                licenses {
+                    license {
+                        name licenseName // 'The Apache License, Version 2.0'
+                        url licenseUrl // 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id developerId // '这里填写申请账号时候的全名就可以'
+                        name developerName // '这里随意填写就可以'
+                        email developerEmail// '最好是申请账号时用的邮箱'
+                    }
+                }
+            }
+        }
+    }
+}

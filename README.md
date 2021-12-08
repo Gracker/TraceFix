@@ -17,12 +17,12 @@ TRACEFIX_VERSION=0.0.5
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
         classpath("com.androidperf:tracefix:${TRACEFIX_VERSION}"){ changing = true }
-        implementation 'androidx.appcompat:appcompat:1.2.0'
+        implementation 'androidx.appcompat:appcompat:1.4.0'
     }
 }
 ```
@@ -30,7 +30,7 @@ buildscript {
 3. Add AndroidX for Appcompat Api（This is needed for now ）
 ```
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.appcompat:appcompat:1.4.0'
 }
 ```
 

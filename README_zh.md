@@ -19,12 +19,12 @@ TRACEFIX_VERSION=0.0.5
 buildscript {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
         classpath("com.androidperf:tracefix:${TRACEFIX_VERSION}"){ changing = true }
-        implementation 'androidx.appcompat:appcompat:1.2.0'
+        implementation 'androidx.appcompat:appcompat:1.4.0'
     }
 }
 ```
@@ -32,7 +32,7 @@ buildscript {
 3. 如果你的 Module 里面没有使用 AndroidX，那么需要在需要插桩的 Module 的 build.gradle 添加 AndroidX 依赖（后续会针对没有 AndroidX 的 Module 做兼容）
 ```
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.appcompat:appcompat:1.4.0'
 }
 ```
 
