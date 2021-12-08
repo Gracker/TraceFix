@@ -22,7 +22,7 @@ repositories {
 }
 
 ext {
-    bintrayName = 'TraceFix'				//bintray用户名
+    bintrayName = 'TraceFix'                //bintray用户名
     artifact = bintrayName
     libraryName = 'TraceFix'
     libraryDescription = 'Auto add Systrace tag while building apk'

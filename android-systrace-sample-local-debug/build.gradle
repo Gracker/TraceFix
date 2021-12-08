@@ -34,7 +34,7 @@ buildscript {
         classpath("com.androidperf:tracefix:${TRACEFIX_VERSION_DEBUG}") { changing = true }
     }
 }
-zhewanyi 
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.core:core-ktx:1.6.0'
