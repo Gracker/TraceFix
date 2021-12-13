@@ -29,7 +29,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("io.github.gracker:TraceFix::${TRACEFIX_VERSION}"){ changing = true }
+        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION}"){ changing = true }
         implementation 'androidx.appcompat:appcompat:1.4.0'
     }
 }
