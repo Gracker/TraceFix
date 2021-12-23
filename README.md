@@ -12,7 +12,7 @@ Auto add systrace Tag when project compiling
 1. Configure TRACEFIX_VERSION in gradle.properties.
 
 ```
-TRACEFIX_VERSION=0.0.5
+TRACEFIX_VERSION=0.0.6
 ```
 
 2. Add matrix-gradle-plugin in your build.gradle(Root project or module, Make sure it looks like
@@ -27,26 +27,17 @@ buildscript {
 
     dependencies {
         classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION}"){ changing = true }
-        implementation 'androidx.appcompat:appcompat:1.4.0'
     }
 }
 ```
 
-3. Add AndroidX for Appcompat Api（This is needed for now ）
-
-```
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.0'
-}
-```
-
-4. Add dependencies to your app/build.gradle.
+3. Add dependencies to your app/build.gradle.
 
 ```
 apply plugin: 'auto-add-systrace'
 ```
 
-5. Build and install apk , run systrace tools, " -a your-package-name"  is Needed！
+4. Build and install apk , run systrace tools, " -a your-package-name"  is Needed！
 
 ```
 python /path-to-your-systrace/systrace.py -a your-package-name
@@ -55,7 +46,7 @@ python /path-to-your-systrace/systrace.py -a your-package-name
 python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.settings
 ```
 
-6. Open trace file on Chrome or https://ui.perfetto.dev/#!/viewer
+5. Open trace file on Chrome or https://ui.perfetto.dev/#!/viewer
 
 # TODO
 
@@ -63,7 +54,6 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 2. Class name opt
 3. Init method opt
 4. Disable get、set
-5. No-AndroidX opt
 
 # Module
 

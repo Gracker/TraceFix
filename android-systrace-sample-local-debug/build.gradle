@@ -31,7 +31,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.androidperf:tracefix:${TRACEFIX_VERSION_DEBUG}") { changing = true }
+        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION_DEBUG}") { changing = true }
     }
 }
 

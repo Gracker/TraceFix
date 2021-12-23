@@ -1,11 +1,20 @@
 apply plugin: 'maven-publish'
 
-def javadocJar = task("javadocJar", type: Jar, dependsOn: javadoc) {
+// 强制 Java/JavaDoc 等的编码为 UTF-8
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType(Javadoc) {
+    options.encoding = "UTF-8"
+}
+
+def javadocJar = task("javadocJarLocal", type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
 }
 
-def sourcesJar = task("sourcesJar", type: Jar) {
+def sourcesJar = task("sourcesJarLocal", type: Jar) {
     classifier = 'sources'
     from sourceSets.main.java.srcDirs
 }
@@ -14,12 +23,12 @@ publishing {
     publications {
         Component(MavenPublication) {
             from components.java
-            groupId = group
-            artifactId = POM_ARTIFACT_ID
-            version = version
+            groupId = publishedGroupId
+            artifactId = artifact
+            version = TRACEFIX_VERSION_DEBUG
 
-            artifact sourcesJar
-            artifact javadocJar
+            artifact sourcesJarLocal
+            artifact javadocJarLocal
         }
     }
 }

@@ -26,9 +26,9 @@ ext {
     artifact = bintrayName
     libraryName = 'TraceFix'
     libraryDescription = 'Auto add Systrace tag while building apk'
-    libraryVersion = '0.0.5'
+    libraryVersion = '0.0.6'
 }
 
 
 apply from: '../gradle/maven-publish.gradle'   // For remote publish
-//apply from: rootProject.file('gradle/java-publish.gradle')  // For local publish
+apply from: '../gradle/java-publish.gradle'  // For local publish

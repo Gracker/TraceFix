@@ -32,7 +32,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION}") { changing = true }
+        classpath("io.github.gracker:TraceFix:0.0.5") { changing = true }
     }
 }
 

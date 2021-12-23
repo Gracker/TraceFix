@@ -6,12 +6,8 @@ buildscript {
     ext.kotlin_version = '1.5.31'
     ext.gradleVersion = '3.6.4'
     repositories {
-//        mavenCentral()
-//        mavenLocal()
         google()
         mavenCentral()
-//        maven { url 'http://maven.aliyun.com/nexus/content/repositories/google' }
-//        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
     }
     dependencies {
         classpath "com.android.tools.build:gradle:$gradleVersion"
@@ -25,10 +21,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-//        mavenCentral()
-//        mavenLocal()
-//        maven { url 'http://maven.aliyun.com/nexus/content/repositories/google' }
-//        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
     }
 }
 

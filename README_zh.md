@@ -15,7 +15,7 @@ TraceFix 插件在 Android 项目编译的时候，在函数头和尾通过 ASM 
 1. 在 Android Studio 的项目的 gradle.properties 中配置 TRACEFIX_VERSION
 
 ```
-TRACEFIX_VERSION=0.0.5
+TRACEFIX_VERSION=0.0.6
 ```
 
 2. 在需要插桩的 Module 的 build.gradle 添加插件 com.androidperf:tracefix 信息，（如果 Module 里面没有 buildscript ，可以加到
@@ -30,27 +30,17 @@ buildscript {
 
     dependencies {
         classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION}"){ changing = true }
-        implementation 'androidx.appcompat:appcompat:1.4.0'
     }
 }
 ```
 
-3. 如果你的 Module 里面没有使用 AndroidX，那么需要在需要插桩的 Module 的 build.gradle 添加 AndroidX 依赖（后续会针对没有 AndroidX 的
-   Module 做兼容）
-
-```
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.0'
-}
-```
-
-4. 在 module 的 build.gradle 文件中添加 plugin
+3. 在 module 的 build.gradle 文件中添加 plugin
 
 ```
 apply plugin: 'auto-add-systrace'
 ```
 
-5. 编译和安装 apk，然后使用命令行抓取 Systrace 文件, 必须要加 -a 并提供包名，否则 Systrace 中不会显示 ：" -a your-package-name"
+4. 编译和安装 apk，然后使用命令行抓取 Systrace 文件, 必须要加 -a 并提供包名，否则 Systrace 中不会显示 ：" -a your-package-name"
 
 ```
 python /path-to-your-systrace/systrace.py -a your-package-name
@@ -59,17 +49,16 @@ for example
 python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.settings
 ```
 
-6. 在 Chrome 或者 https://ui.perfetto.dev/#!/viewer 打开 Systrace，找到对应的应用进程查看
+5. 在 Chrome 或者 https://ui.perfetto.dev/#!/viewer 打开 Systrace，找到对应的应用进程查看
 
 ## TODO
 
-1. 加入无 AndroidX 版本
-2. 加入完整包名
-3. 加入 Method Map 功能（防止混淆后没法对应）
-4. 黑白名单控制功能
-5. Init 函数优化
-6. get、set 函数优化
-7. README 添加 Version 标志
+1. 加入完整包名
+2. 加入 Method Map 功能（防止混淆后没法对应）
+3. 黑白名单控制功能
+4. Init 函数优化
+5. get、set 函数优化
+6. README 添加 Version 标志
 
 # Module 说明
 
