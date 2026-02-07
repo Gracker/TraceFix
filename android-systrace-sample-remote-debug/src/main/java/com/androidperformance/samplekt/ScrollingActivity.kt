@@ -4,21 +4,31 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.snackbar.Snackbar
-import kotlinx.android.synthetic.main.activity_scrolling.*
+import androidx.appcompat.widget.Toolbar
+import com.google.android.material.appbar.CollapsingToolbarLayout
 
 class ScrollingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scrolling)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        val toolbarLayout = findViewById<CollapsingToolbarLayout>(R.id.toolbar_layout)
         setSupportActionBar(toolbar)
-        toolbar_layout.title = title
+        toolbarLayout.title = title
         testSleep()
+        traceExceptionDemo(false)
     }
 
     private fun testSleep() {
         Thread.sleep(1000)
+    }
+
+    private fun traceExceptionDemo(shouldThrow: Boolean): Int {
+        if (shouldThrow) {
+            throw IllegalStateException("trace demo exception")
+        }
+        return 42
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

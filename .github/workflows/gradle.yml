@@ -1,7 +1,4 @@
-# This workflow will build a Java project with Gradle
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-gradle
-
-name: Java CI with Gradle
+name: Gradle Compatibility CI
 
 on:
   push:
@@ -10,17 +7,79 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-
+  compatibility:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - agp: "7.4.2"
+            module: "android-systrace-sample-local-debug"
+            plugin_source: "local"
+            class_name: "MainActivity.class"
+          - agp: "7.4.2"
+            module: "android-systrace-sample-low-remote-debug"
+            plugin_source: "remote"
+            class_name: "MainActivity.class"
+          - agp: "8.3.2"
+            module: "android-systrace-sample-high-local-debug"
+            plugin_source: "local"
+            class_name: "MainActivity.class"
+          - agp: "8.3.2"
+            module: "android-systrace-sample-remote-debug"
+            plugin_source: "remote"
+            class_name: "ScrollingActivity.class"
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          java-version: 1.8
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-      - name: Build with Gradle
-        run: ./gradlew build
+        run: chmod +x gradlew scripts/verify-compatibility.sh
+
+      - name: Build demo with AGP matrix
+        run: |
+          if [ "${{ matrix.plugin_source }}" = "local" ]; then
+            ./gradlew \
+              -PTRACEFIX_AGP_VERSION=${{ matrix.agp }} \
+              :android-systrace-plugin:publishToMavenLocal \
+              :${{ matrix.module }}:clean \
+              :${{ matrix.module }}:assembleDebug \
+              --no-daemon
+          else
+            ./gradlew \
+              -PTRACEFIX_AGP_VERSION=${{ matrix.agp }} \
+              :android-systrace-plugin:publishTraceFixLocalPublicationToTracefixRemoteRepository \
+              --no-daemon
+
+            ./gradlew \
+              -PTRACEFIX_AGP_VERSION=${{ matrix.agp }} \
+              -PTRACEFIX_ENABLE_REMOTE_DEMOS=true \
+              -PTRACEFIX_VERSION_REMOTE=1.0 \
+              -PTRACEFIX_REMOTE_REPO_URL=file://${{ github.workspace }}/build/tracefix-remote-repo \
+              :${{ matrix.module }}:clean \
+              :${{ matrix.module }}:assembleDebug \
+              --no-daemon
+          fi
+
+      - name: Verify bytecode instrumentation
+        run: |
+          CLASS_FILE=$(find "${{ matrix.module }}/build/intermediates" -type f -name "${{ matrix.class_name }}" | grep -E 'transformDebugClassesWithAsm|asm_instrumented_project_classes' | head -n 1)
+          if [ -z "${CLASS_FILE}" ]; then
+            echo "Cannot find transformed class file"
+            exit 1
+          fi
+          javap -c -p "${CLASS_FILE}" > /tmp/javap.txt
+          grep -q 'android/os/Trace.beginSection' /tmp/javap.txt
+          grep -q 'android/os/Trace.endSection' /tmp/javap.txt
+          grep -q 'traceExceptionDemo' /tmp/javap.txt
+          grep -q 'athrow' /tmp/javap.txt

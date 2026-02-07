@@ -1,14 +1,25 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION_DEBUG}") { changing = true }
+    }
+}
+
 apply plugin: 'com.android.application'
 apply plugin: 'auto-add-systrace'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
+    namespace "com.androidperformance.test"
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.androidperformance.test"
-        minSdkVersion 28
-        targetSdkVersion 30
+        minSdk 28
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -21,17 +32,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-}
 
-buildscript {
-    repositories {
-        mavenLocal()
-        maven { url 'http://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'http://maven.aliyun.com/nexus/content/groups/public/' }
-    }
-
-    dependencies {
-        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION_DEBUG}") { changing = true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 

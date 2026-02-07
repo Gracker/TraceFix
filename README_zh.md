@@ -51,6 +51,45 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 
 5. 在 Chrome 或者 https://ui.perfetto.dev/#!/viewer 打开 Systrace，找到对应的应用进程查看
 
+## 兼容矩阵（已验证）
+
+| 场景 | AGP | Gradle | 插件来源 | Module |
+| --- | --- | --- | --- | --- |
+| 低版本本地插件 Demo | 7.4.2 | 8.4 | 本地仓库（`mavenLocal`） | `android-systrace-sample-local-debug` |
+| 低版本远程插件 Demo | 7.4.2 | 8.4 | 远程仓库 | `android-systrace-sample-low-remote-debug` |
+| 高版本本地插件 Demo | 8.3.2 | 8.4 | 本地仓库（`mavenLocal`） | `android-systrace-sample-high-local-debug` |
+| 高版本远程插件 Demo | 8.3.2 | 8.4 | 远程仓库 | `android-systrace-sample-remote-debug` |
+
+执行四组 Demo 并验证插桩结果：
+
+```bash
+LOW_AGP_VERSION=7.4.2 HIGH_AGP_VERSION=8.3.2 ./scripts/verify-compatibility.sh
+```
+
+如果要在 Android Studio/Gradle 中直接加载远程 Demo 模块，需要加：
+
+```bash
+-PTRACEFIX_ENABLE_REMOTE_DEMOS=true
+```
+
+如果要验证远程插件 Demo，还需要补充（或直接执行脚本）：
+
+```bash
+-PTRACEFIX_VERSION_REMOTE=1.0 -PTRACEFIX_REMOTE_REPO_URL=file://$PWD/build/tracefix-remote-repo
+```
+
+脚本会检查：
+
+1. `Trace.beginSection` 已插入。
+2. `Trace.endSection` 已插入。
+3. 变换后方法中存在异常路径（`athrow`，方法名 `traceExceptionDemo`），确保抛异常时也会执行 `Trace.endSection`。
+
+## 版本兼容策略
+
+1. 通过 `TRACEFIX_AGP_VERSION` 切换仓库使用的 AGP 版本。
+2. 通过 `TRACEFIX_AGP_API_VERSION` 指定插件编译期 `gradle-api` 版本（默认跟随 `TRACEFIX_AGP_VERSION`，兜底 `7.4.2`），用于提升插件二进制兼容性。
+3. 对于更老的 AGP（仅 Transform 时代），建议维护单独的 legacy 分支或 artifact，不要和新实现混在同一个二进制里。
+
 ## TODO
 
 1. 加入完整包名
@@ -62,13 +101,21 @@ python /mnt/d/Android/platform-tools/systrace/systrace.py -a com.android.setting
 
 # Module 说明
 
-## android-systrace-sample-remote-debug
-
-远程插件调试 Demo，不依赖本地的插件，用来测试远程发布的插件是否正常
-
 ## android-systrace-sample-local-debug
 
-本地插件调试 Demo，插件发布到本地后，用来本地快速调试验证效果
+低版本本地插件 Demo（AGP 7.4.2）。
+
+## android-systrace-sample-low-remote-debug
+
+低版本远程插件 Demo（AGP 7.4.2）。
+
+## android-systrace-sample-high-local-debug
+
+高版本本地插件 Demo（AGP 8.3.2）。
+
+## android-systrace-sample-remote-debug
+
+高版本远程插件 Demo（AGP 8.3.2）。
 
 ## android-systrace-sample-jetpack
 

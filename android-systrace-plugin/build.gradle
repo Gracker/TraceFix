@@ -1,17 +1,30 @@
 apply plugin: 'groovy'
-apply plugin: 'maven'
 apply plugin: 'kotlin'
+
+def agpApiVersion = rootProject.findProperty("TRACEFIX_AGP_API_VERSION")
+if (agpApiVersion == null) {
+    agpApiVersion = rootProject.findProperty("TRACEFIX_AGP_VERSION")
+}
+if (agpApiVersion == null) {
+    agpApiVersion = "7.4.2"
+}
 
 dependencies {
     implementation gradleApi()
     implementation localGroovy()
-    implementation "com.android.tools.build:gradle:$gradleVersion"
+    compileOnly "com.android.tools.build:gradle-api:${agpApiVersion}"
+    implementation "org.ow2.asm:asm:9.7"
+    implementation "org.ow2.asm:asm-commons:9.7"
 }
 
 buildscript {
     repositories {
+        google()
         mavenCentral()
         mavenLocal()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${rootProject.findProperty("TRACEFIX_KOTLIN_VERSION") ?: "1.9.22"}"
     }
 }
 
@@ -30,5 +43,4 @@ ext {
 }
 
 
-apply from: '../gradle/maven-publish.gradle'   // For remote publish
 apply from: '../gradle/java-publish.gradle'  // For local publish

@@ -1,16 +1,31 @@
+buildscript {
+    def remoteRepoUrl = project.findProperty("TRACEFIX_REMOTE_REPO_URL")
+    def remoteVersion = project.findProperty("TRACEFIX_VERSION_REMOTE") ?: TRACEFIX_VERSION
+
+    repositories {
+        if (remoteRepoUrl != null && remoteRepoUrl.toString().trim()) {
+            maven { url uri(remoteRepoUrl.toString()) }
+        }
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("io.github.gracker:TraceFix:${remoteVersion}") { changing = true }
+    }
+}
+
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'auto-add-systrace'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.3"
+    namespace "com.androidperformance.samplekt"
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.androidperformance.samplekt"
-        minSdkVersion 26
-        targetSdkVersion 30
+        minSdk 26
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
@@ -23,16 +38,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-}
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    dependencies {
-        classpath("io.github.gracker:TraceFix:0.0.6") { changing = true }
+    kotlinOptions {
+        jvmTarget = "1.8"
     }
 }
 
@@ -44,7 +57,6 @@ configurations.all {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'androidx.core:core-ktx:1.6.0'
     implementation 'androidx.appcompat:appcompat:1.3.0'
     implementation 'com.google.android.material:material:1.4.0'

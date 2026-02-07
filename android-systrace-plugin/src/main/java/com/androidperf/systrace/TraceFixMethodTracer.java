@@ -4,6 +4,7 @@ import com.androidperf.systrace.method.TraceMethod;
 import com.androidperf.systrace.tools.Constants;
 
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.AdviceAdapter;
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TraceFixMethodTracer extends ClassVisitor {
+    private final int asmApi;
     private final HashMap<String, TraceMethod> mCollectedMethodMap;
     private final HashMap<String, TraceMethod> mCollectedIgnoreMethodMap;
     private final HashMap<String, TraceMethod> mCollectedBlackMethodMap;
@@ -23,7 +25,8 @@ public class TraceFixMethodTracer extends ClassVisitor {
     private boolean hasWindowFocusMethod = false;
 
     public TraceFixMethodTracer(int api, ClassVisitor cv) {
-        super(Opcodes.ASM5, cv);
+        super(api, cv);
+        this.asmApi = api;
         this.mCollectedMethodMap = new HashMap<>();
         this.mCollectedClassExtendMap = new HashMap<>();
         this.mCollectedIgnoreMethodMap = new HashMap<>();
@@ -54,7 +57,11 @@ public class TraceFixMethodTracer extends ClassVisitor {
                 hasWindowFocusMethod = TraceMethod.isWindowFocusChangeMethod(name, desc);
             }
             MethodVisitor methodVisitor = cv.visitMethod(access, name, desc, signature, exceptions);
-            methodVisitor = new AdviceAdapter(Opcodes.ASM5, methodVisitor, access, name, desc) {
+            methodVisitor = new AdviceAdapter(asmApi, methodVisitor, access, name, desc) {
+                private final Label traceStart = new Label();
+                private final Label traceEnd = new Label();
+                private boolean traceOpened = false;
+
                 @Override
                 protected void onMethodEnter() {
                     String sectionName = mClassName + "." + name;
@@ -67,13 +74,33 @@ public class TraceFixMethodTracer extends ClassVisitor {
                     mv.visitMethodInsn(INVOKESTATIC, Constants.DEFAULT_TRACE_METHOD_BEAT_CLASS,
                             Constants.DEFAULT_TRACE_METHOD_BEAT_BEGIN,
                             "(Ljava/lang/String;)V", false);
+                    traceOpened = true;
+                    visitLabel(traceStart);
                 }
 
                 @Override
                 protected void onMethodExit(int opcode) {
+                    if (!traceOpened || opcode == ATHROW) {
+                        return;
+                    }
                     mv.visitMethodInsn(INVOKESTATIC, Constants.DEFAULT_TRACE_METHOD_BEAT_CLASS,
                             Constants.DEFAULT_TRACE_METHOD_BEAT_END,
                             "()V", false);
+                }
+
+                @Override
+                public void visitMaxs(int maxStack, int maxLocals) {
+                    if (traceOpened) {
+                        Label handler = new Label();
+                        visitLabel(traceEnd);
+                        visitTryCatchBlock(traceStart, traceEnd, handler, null);
+                        visitLabel(handler);
+                        visitMethodInsn(INVOKESTATIC, Constants.DEFAULT_TRACE_METHOD_BEAT_CLASS,
+                                Constants.DEFAULT_TRACE_METHOD_BEAT_END,
+                                "()V", false);
+                        throwException();
+                    }
+                    super.visitMaxs(maxStack, maxLocals);
                 }
             };
             return methodVisitor;

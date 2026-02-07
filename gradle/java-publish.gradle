@@ -1,48 +1,53 @@
 apply plugin: 'maven-publish'
 
-// 强制 Java/JavaDoc 等的编码为 UTF-8
-tasks.withType(JavaCompile) {
+tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
 }
 
-tasks.withType(Javadoc) {
+tasks.withType(Javadoc).configureEach {
     options.encoding = "UTF-8"
 }
 
-def javadocJar = task("javadocJarLocal", type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
+tasks.register("sourcesJarLocal", Jar) {
+    archiveClassifier.set("sources")
+    from sourceSets.main.allSource
 }
 
-def sourcesJar = task("sourcesJarLocal", type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.java.srcDirs
+tasks.register("javadocJarLocal", Jar) {
+    archiveClassifier.set("javadoc")
+    from tasks.named("javadoc")
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "tracefixRemote"
+            url = rootProject.layout.buildDirectory.dir("tracefix-remote-repo")
+        }
+    }
+
     publications {
-        Component(MavenPublication) {
+        traceFixLocal(MavenPublication) {
             from components.java
             groupId = publishedGroupId
             artifactId = artifact
             version = TRACEFIX_VERSION_DEBUG
-
-            artifact sourcesJarLocal
-            artifact javadocJarLocal
+            artifact tasks.named("sourcesJarLocal")
+            artifact tasks.named("javadocJarLocal")
         }
     }
 }
 
-
-task buildAndPublishToLocalMaven(type: Copy, dependsOn: ['build', 'publishToMavenLocal']) {
-    // save artifacts files to artifacts folder
-    from configurations.archives.allArtifacts.files
-    into "${rootProject.buildDir}/outputs/artifacts/"
-    rename { String fileName ->
-        fileName.replace("release.aar", "${version}.aar")
-    }
-
+tasks.register("buildAndPublishToLocalMaven") {
+    dependsOn("build", "publishToMavenLocal")
     doLast {
-        println "* published to maven local: ${project.group}:${project.name}:${project.version}"
+        println "* published to maven local: ${publishedGroupId}:${artifact}:${TRACEFIX_VERSION_DEBUG}"
+    }
+}
+
+tasks.register("buildAndPublishToRemoteRepo") {
+    dependsOn("build", "publishTraceFixLocalPublicationToTracefixRemoteRepository")
+    doLast {
+        println "* published to file repo: ${rootProject.buildDir}/tracefix-remote-repo"
     }
 }
