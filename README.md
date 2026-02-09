@@ -17,6 +17,9 @@ TraceFix instruments bytecode at compile time and injects `android.os.Trace.begi
 
 ## Remote Plugin (Recommended)
 
+Latest published artifact: `io.github.gracker:TraceFix:0.1.0`  
+Maven Central repository: `https://repo1.maven.org/maven2/io/github/gracker/TraceFix/0.1.0/`
+
 1. Set plugin version in `gradle.properties`:
 
 ```properties
