@@ -45,18 +45,18 @@ apply plugin: 'auto-add-systrace'
 
 4. Build your app and inspect traces in Perfetto (`https://ui.perfetto.dev/#!/viewer`).
 
-## Publish To Maven Central (Maintainers)
+## Publish To Maven Central (Maintainers, Central Portal)
 
-1. Configure Sonatype credentials (choose one source):
+1. Configure Central Portal token credentials (choose one source):
 
 - Environment variables:
 
 ```bash
-export OSSRH_USERNAME=...
-export OSSRH_PASSWORD=...
+export OSSRH_USERNAME=... # token username from https://central.sonatype.com/usertoken
+export OSSRH_PASSWORD=... # token password from https://central.sonatype.com/usertoken
 ```
 
-- Or root `local.properties` (legacy):
+- Or root `local.properties`:
 
 ```properties
 ossrhUsername=...
@@ -81,19 +81,31 @@ signing.password=...
 signing.secretKeyRingFile=/path/to/secring.gpg
 ```
 
-- Or use system GPG command:
+- Or use system GPG:
 
 ```properties
 useGpgCmd=true
 ```
 
-3. Verify publish configuration:
+3. Confirm namespace (optional when it equals `publishedGroupId`):
+
+```bash
+export TRACEFIX_CENTRAL_NAMESPACE=io.github.gracker
+```
+
+4. Verify publish configuration:
 
 ```bash
 ./gradlew :android-systrace-plugin:verifyReleasePublishConfig
 ```
 
-4. Publish release artifact:
+5. Publish release artifact (latest flow):
+
+```bash
+./gradlew :android-systrace-plugin:publishReleaseToCentral
+```
+
+Compatibility alias:
 
 ```bash
 ./gradlew :android-systrace-plugin:publishReleaseToSonatype

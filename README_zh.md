@@ -45,18 +45,18 @@ apply plugin: 'auto-add-systrace'
 
 4. 编译后用 Perfetto 查看结果：`https://ui.perfetto.dev/#!/viewer`。
 
-## 发布到 Maven Central（维护者）
+## 发布到 Maven Central（维护者，Central Portal）
 
-1. 配置 Sonatype 账号（任选一种来源）：
+1. 配置 Central Portal Token（任选一种来源）：
 
 - 环境变量：
 
 ```bash
-export OSSRH_USERNAME=...
-export OSSRH_PASSWORD=...
+export OSSRH_USERNAME=... # https://central.sonatype.com/usertoken 的 token username
+export OSSRH_PASSWORD=... # https://central.sonatype.com/usertoken 的 token password
 ```
 
-- 或根目录 `local.properties`（兼容旧方式）：
+- 或根目录 `local.properties`：
 
 ```properties
 ossrhUsername=...
@@ -87,13 +87,25 @@ signing.secretKeyRingFile=/path/to/secring.gpg
 useGpgCmd=true
 ```
 
-3. 先做配置检查：
+3. 确认 namespace（当与 `publishedGroupId` 不一致时再配置）：
+
+```bash
+export TRACEFIX_CENTRAL_NAMESPACE=io.github.gracker
+```
+
+4. 先做配置检查：
 
 ```bash
 ./gradlew :android-systrace-plugin:verifyReleasePublishConfig
 ```
 
-4. 执行发布：
+5. 按最新流程发布：
+
+```bash
+./gradlew :android-systrace-plugin:publishReleaseToCentral
+```
+
+兼容别名命令：
 
 ```bash
 ./gradlew :android-systrace-plugin:publishReleaseToSonatype

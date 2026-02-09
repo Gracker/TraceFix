@@ -82,6 +82,23 @@ def useGpgCmdSigning = readFlag(["useGpgCmd"], ["USE_GPG_CMD", "SIGNING_USE_GPG_
 def hasInMemorySigning = signingKey != null
 def hasLegacySecretKeyRingSigning = signingSecretKeyRingFile != null && signingPassword != null
 def hasAnySupportedSigning = hasInMemorySigning || hasLegacySecretKeyRingSigning || useGpgCmdSigning
+def isSnapshotRelease = releaseVersion.endsWith("SNAPSHOT")
+def centralStagingApiBaseUrl = ((project.findProperty("TRACEFIX_CENTRAL_STAGING_BASE_URL")
+        ?: "https://ossrh-staging-api.central.sonatype.com").toString()).replaceAll("/+\$", "")
+def centralSnapshotsRepoUrl = (project.findProperty("TRACEFIX_CENTRAL_SNAPSHOTS_URL")
+        ?: "https://central.sonatype.com/repository/maven-snapshots/").toString()
+def centralNamespace = readSecret(
+        ["TRACEFIX_CENTRAL_NAMESPACE", "centralNamespace", "namespace", "publishedGroupId"],
+        ["TRACEFIX_CENTRAL_NAMESPACE", "CENTRAL_NAMESPACE"]
+) ?: publishGroupId
+def centralPublishingType = (readSecret(
+        ["TRACEFIX_CENTRAL_PUBLISHING_TYPE", "centralPublishingType"],
+        ["TRACEFIX_CENTRAL_PUBLISHING_TYPE"]
+) ?: "automatic").toString()
+def centralSkipFinalize = readFlag(
+        ["TRACEFIX_CENTRAL_SKIP_FINALIZE", "centralSkipFinalize"],
+        ["TRACEFIX_CENTRAL_SKIP_FINALIZE"]
+)
 
 def pomLibraryName = (project.findProperty("libraryName") ?: "TraceFix").toString()
 def pomDescription = (project.findProperty("libraryDescription") ?: "Auto add Systrace tag while building apk").toString()
@@ -128,9 +145,9 @@ publishing {
 
         maven {
             name = "sonatype"
-            def releasesRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            def snapshotsRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-            url = releaseVersion.endsWith("SNAPSHOT") ? snapshotsRepoUrl : releasesRepoUrl
+            def releasesRepoUrl = uri("${centralStagingApiBaseUrl}/service/local/staging/deploy/maven2/")
+            def snapshotsRepoUrl = uri(centralSnapshotsRepoUrl)
+            url = isSnapshotRelease ? snapshotsRepoUrl : releasesRepoUrl
             credentials {
                 username = ossrhUsername
                 password = ossrhPassword
@@ -161,18 +178,21 @@ publishing {
     }
 }
 
-def isSonatypeReleaseTask = {
+def isCentralReleaseTask = {
     gradle.startParameter.taskNames.any { taskName ->
         String normalized = taskName.toLowerCase()
-        normalized.contains("sonatype") || normalized.endsWith("publishreleasetosonatype")
+        normalized.contains("sonatype")
+                || normalized.contains("central")
+                || normalized.endsWith("publishreleasetosonatype")
+                || normalized.endsWith("publishreleasetocentral")
     }
 }
 
 signing {
     required {
-        isSonatypeReleaseTask()
+        isCentralReleaseTask()
     }
-    if (isSonatypeReleaseTask()) {
+    if (isCentralReleaseTask()) {
         if (hasInMemorySigning) {
             if (signingKeyId) {
                 useInMemoryPgpKeys(signingKeyId.toString(), signingKey.toString(), signingPassword)
@@ -192,10 +212,16 @@ tasks.register("verifyReleasePublishConfig") {
     doLast {
         List<String> missing = []
         if (!ossrhUsername) {
-            missing.add("Sonatype username: ossrhUsername/mavenCentralUsername/sonatypeUsername or OSSRH_USERNAME/MAVEN_CENTRAL_USERNAME/SONATYPE_USERNAME")
+            missing.add("Central token username: ossrhUsername/mavenCentralUsername/sonatypeUsername or OSSRH_USERNAME/MAVEN_CENTRAL_USERNAME/SONATYPE_USERNAME")
         }
         if (!ossrhPassword) {
-            missing.add("Sonatype password: ossrhPassword/mavenCentralPassword/sonatypePassword or OSSRH_PASSWORD/MAVEN_CENTRAL_PASSWORD/SONATYPE_PASSWORD")
+            missing.add("Central token password: ossrhPassword/mavenCentralPassword/sonatypePassword or OSSRH_PASSWORD/MAVEN_CENTRAL_PASSWORD/SONATYPE_PASSWORD")
+        }
+        if (!centralNamespace) {
+            missing.add("Central namespace: TRACEFIX_CENTRAL_NAMESPACE or CENTRAL_NAMESPACE (defaults to publishedGroupId)")
+        }
+        if (!(centralPublishingType in ["user_managed", "automatic", "portal_api"])) {
+            missing.add("TRACEFIX_CENTRAL_PUBLISHING_TYPE must be one of: user_managed, automatic, portal_api")
         }
         if (!hasAnySupportedSigning) {
             missing.add("signing config: SIGNING_KEY(+SIGNING_PASSWORD) OR useGpgCmd=true OR signing.keyId/signing.password/signing.secretKeyRingFile")
@@ -214,9 +240,9 @@ tasks.withType(PublishToMavenRepository).configureEach { publishTask ->
 
 tasks.matching { it.name == "signTraceFixReleasePublication" }.configureEach { signTask ->
     signTask.onlyIf {
-        isSonatypeReleaseTask()
+        isCentralReleaseTask()
     }
-    if (isSonatypeReleaseTask()) {
+    if (isCentralReleaseTask()) {
         signTask.dependsOn("verifyReleasePublishConfig")
     }
 }
@@ -235,9 +261,63 @@ tasks.register("buildAndPublishToRemoteRepo") {
     }
 }
 
-tasks.register("publishReleaseToSonatype") {
+tasks.register("finalizeCentralDeployment") {
+    onlyIf {
+        !isSnapshotRelease && !centralSkipFinalize
+    }
     dependsOn("publishTraceFixReleasePublicationToSonatypeRepository")
     doLast {
-        println "* published release: ${publishGroupId}:${publishArtifactId}:${releaseVersion}"
+        def namespaceEncoded = java.net.URLEncoder.encode(centralNamespace.toString(), "UTF-8")
+        def publishingTypeEncoded = java.net.URLEncoder.encode(centralPublishingType.toString(), "UTF-8")
+        def endpoint = "${centralStagingApiBaseUrl}/manual/upload/defaultRepository/${namespaceEncoded}?publishing_type=${publishingTypeEncoded}"
+        def authToken = java.util.Base64.getEncoder().encodeToString("${ossrhUsername}:${ossrhPassword}".getBytes("UTF-8"))
+
+        logger.lifecycle("Finalizing deployment via Central Portal API: ${endpoint}")
+
+        HttpURLConnection connection = (HttpURLConnection) new URL(endpoint).openConnection()
+        connection.requestMethod = "POST"
+        connection.doOutput = true
+        connection.setRequestProperty("Authorization", "Bearer ${authToken}")
+        connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.outputStream.withWriter("UTF-8") { writer ->
+            writer << ""
+        }
+
+        int responseCode = connection.responseCode
+        InputStream responseStream = responseCode >= 200 && responseCode < 300
+                ? connection.inputStream
+                : connection.errorStream
+        String responseBody = responseStream != null ? responseStream.getText("UTF-8") : ""
+
+        if (responseCode < 200 || responseCode >= 300) {
+            throw new GradleException("Central deployment finalize failed (${responseCode}). Endpoint: ${endpoint}. Response: ${responseBody}")
+        }
+
+        println "* finalized central deployment (${centralPublishingType}): ${responseBody}"
+    }
+}
+
+tasks.register("publishReleaseToCentral") {
+    if (isSnapshotRelease || centralSkipFinalize) {
+        dependsOn("publishTraceFixReleasePublicationToSonatypeRepository")
+    } else {
+        dependsOn("finalizeCentralDeployment")
+    }
+    doLast {
+        if (isSnapshotRelease) {
+            println "* published snapshot to Central snapshots: ${publishGroupId}:${publishArtifactId}:${releaseVersion}"
+        } else if (centralSkipFinalize) {
+            println "* published release to Central staging API (finalize skipped): ${publishGroupId}:${publishArtifactId}:${releaseVersion}"
+        } else {
+            println "* published release to Maven Central workflow: ${publishGroupId}:${publishArtifactId}:${releaseVersion}"
+        }
+    }
+}
+
+tasks.register("publishReleaseToSonatype") {
+    dependsOn("publishReleaseToCentral")
+    doLast {
+        println "* alias task: publishReleaseToSonatype -> publishReleaseToCentral"
     }
 }
