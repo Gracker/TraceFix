@@ -19,6 +19,39 @@ tasks.register("javadocJarLocal", Jar) {
     from tasks.named("javadoc")
 }
 
+def rootLocalProperties = new Properties()
+def rootLocalPropertiesFile = rootProject.file("local.properties")
+if (rootLocalPropertiesFile.exists()) {
+    rootLocalPropertiesFile.withInputStream { input ->
+        rootLocalProperties.load(input)
+    }
+}
+
+def readSecret = { List<String> propertyKeys, List<String> envKeys = [] ->
+    for (String key : propertyKeys) {
+        def value = project.findProperty(key)
+        if (value != null && value.toString().trim()) {
+            return value.toString().trim()
+        }
+        value = rootLocalProperties.getProperty(key)
+        if (value != null && value.trim()) {
+            return value.trim()
+        }
+    }
+    for (String envKey : envKeys) {
+        def value = System.getenv(envKey)
+        if (value != null && value.trim()) {
+            return value.trim()
+        }
+    }
+    return null
+}
+
+def readFlag = { List<String> propertyKeys, List<String> envKeys = [] ->
+    def value = readSecret(propertyKeys, envKeys)
+    return value != null && value.toBoolean()
+}
+
 def releaseVersion = (project.findProperty("TRACEFIX_VERSION")
         ?: project.findProperty("libraryVersion")
         ?: "0.0.6").toString()
@@ -27,11 +60,28 @@ def debugVersion = (project.findProperty("TRACEFIX_VERSION_DEBUG")
 def publishGroupId = (project.findProperty("publishedGroupId") ?: "io.github.gracker").toString()
 def publishArtifactId = (project.findProperty("artifact") ?: project.name).toString()
 
-def ossrhUsername = project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-def ossrhPassword = project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-def signingKey = project.findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
-def signingPassword = project.findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
-def signingKeyId = project.findProperty("signingKeyId") ?: System.getenv("SIGNING_KEY_ID")
+def ossrhUsername = readSecret(
+        ["ossrhUsername", "mavenCentralUsername", "sonatypeUsername"],
+        ["OSSRH_USERNAME", "MAVEN_CENTRAL_USERNAME", "SONATYPE_USERNAME"]
+)
+def ossrhPassword = readSecret(
+        ["ossrhPassword", "mavenCentralPassword", "sonatypePassword"],
+        ["OSSRH_PASSWORD", "MAVEN_CENTRAL_PASSWORD", "SONATYPE_PASSWORD"]
+)
+def signingKey = readSecret(["signingKey"], ["SIGNING_KEY"])
+def signingPassword = readSecret(
+        ["signingPassword", "signing.password"],
+        ["SIGNING_PASSWORD", "SIGNING_PASSPHRASE"]
+)
+def signingKeyId = readSecret(["signingKeyId", "signing.keyId"], ["SIGNING_KEY_ID"])
+def signingSecretKeyRingFile = readSecret(
+        ["signing.secretKeyRingFile"],
+        ["SIGNING_SECRET_KEY_RING_FILE"]
+)
+def useGpgCmdSigning = readFlag(["useGpgCmd"], ["USE_GPG_CMD", "SIGNING_USE_GPG_CMD"])
+def hasInMemorySigning = signingKey != null
+def hasLegacySecretKeyRingSigning = signingSecretKeyRingFile != null && signingPassword != null
+def hasAnySupportedSigning = hasInMemorySigning || hasLegacySecretKeyRingSigning || useGpgCmdSigning
 
 def pomLibraryName = (project.findProperty("libraryName") ?: "TraceFix").toString()
 def pomDescription = (project.findProperty("libraryDescription") ?: "Auto add Systrace tag while building apk").toString()
@@ -123,14 +173,16 @@ signing {
         isSonatypeReleaseTask()
     }
     if (isSonatypeReleaseTask()) {
-        if (signingKey && signingPassword) {
+        if (hasInMemorySigning) {
             if (signingKeyId) {
-                useInMemoryPgpKeys(signingKeyId.toString(), signingKey.toString(), signingPassword.toString())
+                useInMemoryPgpKeys(signingKeyId.toString(), signingKey.toString(), signingPassword)
             } else {
-                useInMemoryPgpKeys(signingKey.toString(), signingPassword.toString())
+                useInMemoryPgpKeys(signingKey.toString(), signingPassword)
             }
+        } else if (useGpgCmdSigning) {
+            useGpgCmd()
         } else {
-            logger.lifecycle("SIGNING_KEY/SIGNING_PASSWORD not found. Signing will fail for Sonatype publish.")
+            logger.lifecycle("Using legacy Gradle signing properties (signing.keyId/signing.password/signing.secretKeyRingFile).")
         }
         sign publishing.publications.traceFixRelease
     }
@@ -140,16 +192,13 @@ tasks.register("verifyReleasePublishConfig") {
     doLast {
         List<String> missing = []
         if (!ossrhUsername) {
-            missing.add("ossrhUsername or OSSRH_USERNAME")
+            missing.add("Sonatype username: ossrhUsername/mavenCentralUsername/sonatypeUsername or OSSRH_USERNAME/MAVEN_CENTRAL_USERNAME/SONATYPE_USERNAME")
         }
         if (!ossrhPassword) {
-            missing.add("ossrhPassword or OSSRH_PASSWORD")
+            missing.add("Sonatype password: ossrhPassword/mavenCentralPassword/sonatypePassword or OSSRH_PASSWORD/MAVEN_CENTRAL_PASSWORD/SONATYPE_PASSWORD")
         }
-        if (!signingKey) {
-            missing.add("signingKey or SIGNING_KEY (ASCII-armored private key)")
-        }
-        if (!signingPassword) {
-            missing.add("signingPassword or SIGNING_PASSWORD")
+        if (!hasAnySupportedSigning) {
+            missing.add("signing config: SIGNING_KEY(+SIGNING_PASSWORD) OR useGpgCmd=true OR signing.keyId/signing.password/signing.secretKeyRingFile")
         }
         if (!missing.isEmpty()) {
             throw new GradleException("Missing release publish config: " + missing.join(", "))

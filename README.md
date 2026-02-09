@@ -47,16 +47,53 @@ apply plugin: 'auto-add-systrace'
 
 ## Publish To Maven Central (Maintainers)
 
-1. Export credentials:
+1. Configure Sonatype credentials (choose one source):
+
+- Environment variables:
 
 ```bash
 export OSSRH_USERNAME=...
 export OSSRH_PASSWORD=...
-export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
-export SIGNING_PASSWORD=...
 ```
 
-2. Publish release artifact:
+- Or root `local.properties` (legacy):
+
+```properties
+ossrhUsername=...
+ossrhPassword=...
+```
+
+2. Configure signing (choose one source):
+
+- In-memory key:
+
+```bash
+export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
+export SIGNING_PASSWORD=...
+export SIGNING_KEY_ID=... # optional
+```
+
+- Gradle legacy signing properties (`~/.gradle/gradle.properties` or `local.properties`):
+
+```properties
+signing.keyId=...
+signing.password=...
+signing.secretKeyRingFile=/path/to/secring.gpg
+```
+
+- Or use system GPG command:
+
+```properties
+useGpgCmd=true
+```
+
+3. Verify publish configuration:
+
+```bash
+./gradlew :android-systrace-plugin:verifyReleasePublishConfig
+```
+
+4. Publish release artifact:
 
 ```bash
 ./gradlew :android-systrace-plugin:publishReleaseToSonatype

@@ -47,16 +47,53 @@ apply plugin: 'auto-add-systrace'
 
 ## 发布到 Maven Central（维护者）
 
-1. 配置发布凭据：
+1. 配置 Sonatype 账号（任选一种来源）：
+
+- 环境变量：
 
 ```bash
 export OSSRH_USERNAME=...
 export OSSRH_PASSWORD=...
-export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
-export SIGNING_PASSWORD=...
 ```
 
-2. 执行发布：
+- 或根目录 `local.properties`（兼容旧方式）：
+
+```properties
+ossrhUsername=...
+ossrhPassword=...
+```
+
+2. 配置签名（任选一种）：
+
+- 内存私钥：
+
+```bash
+export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
+export SIGNING_PASSWORD=...
+export SIGNING_KEY_ID=... # 可选
+```
+
+- Gradle 传统签名配置（`~/.gradle/gradle.properties` 或 `local.properties`）：
+
+```properties
+signing.keyId=...
+signing.password=...
+signing.secretKeyRingFile=/path/to/secring.gpg
+```
+
+- 或使用系统 GPG：
+
+```properties
+useGpgCmd=true
+```
+
+3. 先做配置检查：
+
+```bash
+./gradlew :android-systrace-plugin:verifyReleasePublishConfig
+```
+
+4. 执行发布：
 
 ```bash
 ./gradlew :android-systrace-plugin:publishReleaseToSonatype
