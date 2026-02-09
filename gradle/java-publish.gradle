@@ -1,4 +1,5 @@
 apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
@@ -18,30 +19,163 @@ tasks.register("javadocJarLocal", Jar) {
     from tasks.named("javadoc")
 }
 
+def releaseVersion = (project.findProperty("TRACEFIX_VERSION")
+        ?: project.findProperty("libraryVersion")
+        ?: "0.0.6").toString()
+def debugVersion = (project.findProperty("TRACEFIX_VERSION_DEBUG")
+        ?: releaseVersion).toString()
+def publishGroupId = (project.findProperty("publishedGroupId") ?: "io.github.gracker").toString()
+def publishArtifactId = (project.findProperty("artifact") ?: project.name).toString()
+
+def ossrhUsername = project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+def ossrhPassword = project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
+def signingKey = project.findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
+def signingPassword = project.findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
+def signingKeyId = project.findProperty("signingKeyId") ?: System.getenv("SIGNING_KEY_ID")
+
+def pomLibraryName = (project.findProperty("libraryName") ?: "TraceFix").toString()
+def pomDescription = (project.findProperty("libraryDescription") ?: "Auto add Systrace tag while building apk").toString()
+def pomSiteUrl = (project.findProperty("siteUrl") ?: "https://github.com/Gracker/TraceFix").toString()
+def pomGitUrl = (project.findProperty("gitUrl") ?: "https://github.com/Gracker/TraceFix.git").toString()
+def pomLicenseName = (project.findProperty("licenseName") ?: "The Apache Software License, Version 2.0").toString()
+def pomLicenseUrl = (project.findProperty("licenseUrl") ?: "http://www.apache.org/licenses/LICENSE-2.0.txt").toString()
+def pomDeveloperId = (project.findProperty("developerId") ?: "TraceFix").toString()
+def pomDeveloperName = (project.findProperty("developerName") ?: "TraceFix").toString()
+def pomDeveloperEmail = (project.findProperty("developerEmail") ?: "tracefix@example.com").toString()
+
+def configurePomMetadata = { MavenPublication publication ->
+    publication.pom {
+        name.set(pomLibraryName)
+        description.set(pomDescription)
+        url.set(pomSiteUrl)
+        licenses {
+            license {
+                name.set(pomLicenseName)
+                url.set(pomLicenseUrl)
+            }
+        }
+        developers {
+            developer {
+                id.set(pomDeveloperId)
+                name.set(pomDeveloperName)
+                email.set(pomDeveloperEmail)
+            }
+        }
+        scm {
+            connection.set(pomGitUrl)
+            developerConnection.set(pomGitUrl)
+            url.set(pomSiteUrl)
+        }
+    }
+}
+
 publishing {
     repositories {
         maven {
             name = "tracefixRemote"
             url = rootProject.layout.buildDirectory.dir("tracefix-remote-repo")
         }
+
+        maven {
+            name = "sonatype"
+            def releasesRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            def snapshotsRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            url = releaseVersion.endsWith("SNAPSHOT") ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username = ossrhUsername
+                password = ossrhPassword
+            }
+        }
     }
 
     publications {
         traceFixLocal(MavenPublication) {
             from components.java
-            groupId = publishedGroupId
-            artifactId = artifact
-            version = TRACEFIX_VERSION_DEBUG
+            groupId = publishGroupId
+            artifactId = publishArtifactId
+            version = debugVersion
             artifact tasks.named("sourcesJarLocal")
             artifact tasks.named("javadocJarLocal")
+            configurePomMetadata(delegate)
+        }
+
+        traceFixRelease(MavenPublication) {
+            from components.java
+            groupId = publishGroupId
+            artifactId = publishArtifactId
+            version = releaseVersion
+            artifact tasks.named("sourcesJarLocal")
+            artifact tasks.named("javadocJarLocal")
+            configurePomMetadata(delegate)
         }
     }
 }
 
-tasks.register("buildAndPublishToLocalMaven") {
-    dependsOn("build", "publishToMavenLocal")
+def isSonatypeReleaseTask = {
+    gradle.startParameter.taskNames.any { taskName ->
+        String normalized = taskName.toLowerCase()
+        normalized.contains("sonatype") || normalized.endsWith("publishreleasetosonatype")
+    }
+}
+
+signing {
+    required {
+        isSonatypeReleaseTask()
+    }
+    if (isSonatypeReleaseTask()) {
+        if (signingKey && signingPassword) {
+            if (signingKeyId) {
+                useInMemoryPgpKeys(signingKeyId.toString(), signingKey.toString(), signingPassword.toString())
+            } else {
+                useInMemoryPgpKeys(signingKey.toString(), signingPassword.toString())
+            }
+        } else {
+            logger.lifecycle("SIGNING_KEY/SIGNING_PASSWORD not found. Signing will fail for Sonatype publish.")
+        }
+        sign publishing.publications.traceFixRelease
+    }
+}
+
+tasks.register("verifyReleasePublishConfig") {
     doLast {
-        println "* published to maven local: ${publishedGroupId}:${artifact}:${TRACEFIX_VERSION_DEBUG}"
+        List<String> missing = []
+        if (!ossrhUsername) {
+            missing.add("ossrhUsername or OSSRH_USERNAME")
+        }
+        if (!ossrhPassword) {
+            missing.add("ossrhPassword or OSSRH_PASSWORD")
+        }
+        if (!signingKey) {
+            missing.add("signingKey or SIGNING_KEY (ASCII-armored private key)")
+        }
+        if (!signingPassword) {
+            missing.add("signingPassword or SIGNING_PASSWORD")
+        }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing release publish config: " + missing.join(", "))
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach { publishTask ->
+    if (publishTask.name == "publishTraceFixReleasePublicationToSonatypeRepository") {
+        publishTask.dependsOn("verifyReleasePublishConfig")
+    }
+}
+
+tasks.matching { it.name == "signTraceFixReleasePublication" }.configureEach { signTask ->
+    signTask.onlyIf {
+        isSonatypeReleaseTask()
+    }
+    if (isSonatypeReleaseTask()) {
+        signTask.dependsOn("verifyReleasePublishConfig")
+    }
+}
+
+tasks.register("buildAndPublishToLocalMaven") {
+    dependsOn("build", "publishTraceFixLocalPublicationToMavenLocal")
+    doLast {
+        println "* published to maven local: ${publishGroupId}:${publishArtifactId}:${debugVersion}"
     }
 }
 
@@ -49,5 +183,12 @@ tasks.register("buildAndPublishToRemoteRepo") {
     dependsOn("build", "publishTraceFixLocalPublicationToTracefixRemoteRepository")
     doLast {
         println "* published to file repo: ${rootProject.buildDir}/tracefix-remote-repo"
+    }
+}
+
+tasks.register("publishReleaseToSonatype") {
+    dependsOn("publishTraceFixReleasePublicationToSonatypeRepository")
+    doLast {
+        println "* published release: ${publishGroupId}:${publishArtifactId}:${releaseVersion}"
     }
 }

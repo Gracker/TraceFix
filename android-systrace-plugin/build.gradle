@@ -39,7 +39,7 @@ ext {
     artifact = bintrayName
     libraryName = 'TraceFix'
     libraryDescription = 'Auto add Systrace tag while building apk'
-    libraryVersion = '0.0.6'
+    libraryVersion = (rootProject.findProperty("TRACEFIX_VERSION") ?: '0.0.6').toString()
 }
 
 

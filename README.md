@@ -20,7 +20,7 @@ TraceFix instruments bytecode at compile time and injects `android.os.Trace.begi
 1. Set plugin version in `gradle.properties`:
 
 ```properties
-TRACEFIX_VERSION=0.0.6
+TRACEFIX_VERSION=0.1.0
 ```
 
 2. Add plugin classpath in module or root `build.gradle`:
@@ -44,6 +44,23 @@ apply plugin: 'auto-add-systrace'
 ```
 
 4. Build your app and inspect traces in Perfetto (`https://ui.perfetto.dev/#!/viewer`).
+
+## Publish To Maven Central (Maintainers)
+
+1. Export credentials:
+
+```bash
+export OSSRH_USERNAME=...
+export OSSRH_PASSWORD=...
+export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
+export SIGNING_PASSWORD=...
+```
+
+2. Publish release artifact:
+
+```bash
+./gradlew :android-systrace-plugin:publishReleaseToSonatype
+```
 
 ## Local Plugin (For Repo Development)
 
