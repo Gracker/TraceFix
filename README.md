@@ -124,6 +124,28 @@ Remote demo modules can be built manually with:
 
 ## Publish To Maven Central
 
+Maintainers can publish from GitHub Actions by opening the `Publish TraceFix` workflow and running it on `master`. Configure these repository secrets first:
+
+| Secret | Required | Notes |
+| --- | --- | --- |
+| `OSSRH_USERNAME` | Yes | Central Portal token username. `MAVEN_CENTRAL_USERNAME` or `SONATYPE_USERNAME` also work. |
+| `OSSRH_PASSWORD` | Yes | Central Portal token password. `MAVEN_CENTRAL_PASSWORD` or `SONATYPE_PASSWORD` also work. |
+| `SIGNING_KEY` | Yes | ASCII-armored PGP private key for in-memory signing. |
+| `SIGNING_PASSWORD` | Yes | Signing key password. `SIGNING_PASSPHRASE` also works. |
+| `SIGNING_KEY_ID` | Optional | Required only when the in-memory key needs an explicit key id. |
+
+Optional repository variables:
+
+| Variable | Default |
+| --- | --- |
+| `TRACEFIX_CENTRAL_NAMESPACE` | `io.github.gracker` |
+| `TRACEFIX_CENTRAL_PUBLISHING_TYPE` | `automatic` |
+| `TRACEFIX_CENTRAL_SKIP_FINALIZE` | unset |
+
+The workflow runs the Android 17 build and trace regression before publishing. Local manual publishing can use legacy keyring or system GPG, but the GitHub workflow intentionally uses in-memory signing because GitHub-hosted runners do not have your local GPG keyring.
+
+Manual local publish is also supported:
+
 1. Configure Central Portal token credentials:
 
 ```bash

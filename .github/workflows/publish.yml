@@ -1,0 +1,45 @@
+name: Publish TraceFix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.1
+
+      - name: Install Android 17 SDK
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew scripts/verify-compatibility.sh
+
+      - name: Build plugin
+        run: ./gradlew :android-systrace-plugin:build --no-daemon
+
+      - name: Run Android 17 trace regression
+        run: ./scripts/verify-compatibility.sh
+
+      - name: Publish release to Maven Central
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME || secrets.MAVEN_CENTRAL_USERNAME || secrets.SONATYPE_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD || secrets.MAVEN_CENTRAL_PASSWORD || secrets.SONATYPE_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD || secrets.SIGNING_PASSPHRASE }}
+          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
+          TRACEFIX_CENTRAL_NAMESPACE: ${{ vars.TRACEFIX_CENTRAL_NAMESPACE || 'io.github.gracker' }}
+          TRACEFIX_CENTRAL_PUBLISHING_TYPE: ${{ vars.TRACEFIX_CENTRAL_PUBLISHING_TYPE || 'automatic' }}
+          TRACEFIX_CENTRAL_SKIP_FINALIZE: ${{ vars.TRACEFIX_CENTRAL_SKIP_FINALIZE }}
+        run: ./gradlew :android-systrace-plugin:publishReleaseToCentral --no-daemon
