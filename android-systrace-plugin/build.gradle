@@ -6,7 +6,7 @@ if (agpApiVersion == null) {
     agpApiVersion = rootProject.findProperty("TRACEFIX_AGP_VERSION")
 }
 if (agpApiVersion == null) {
-    agpApiVersion = "7.4.2"
+    agpApiVersion = "9.1.1"
 }
 
 dependencies {
@@ -24,7 +24,7 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${rootProject.findProperty("TRACEFIX_KOTLIN_VERSION") ?: "1.9.22"}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${rootProject.findProperty("TRACEFIX_KOTLIN_VERSION") ?: "2.3.21"}"
     }
 }
 
@@ -39,7 +39,7 @@ ext {
     artifact = bintrayName
     libraryName = 'TraceFix'
     libraryDescription = 'Auto add Systrace tag while building apk'
-    libraryVersion = (rootProject.findProperty("TRACEFIX_VERSION") ?: '0.0.6').toString()
+    libraryVersion = (rootProject.findProperty("TRACEFIX_VERSION") ?: '0.2.0').toString()
 }
 
 

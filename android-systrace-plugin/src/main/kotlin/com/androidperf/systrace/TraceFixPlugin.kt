@@ -12,6 +12,8 @@ class TraceFixPlugin : Plugin<Project> {
     private var registered = false
 
     override fun apply(project: Project) {
+        val extension = project.extensions.create(EXTENSION_NAME, TraceFixExtension::class.java)
+        project.extensions.extraProperties.set(EXTENSION_NAME, extension)
         registerWhenAndroidPluginPresent(project, "com.android.application")
         registerWhenAndroidPluginPresent(project, "com.android.library")
         registerWhenAndroidPluginPresent(project, "com.android.dynamic-feature")
@@ -27,7 +29,8 @@ class TraceFixPlugin : Plugin<Project> {
                 LogTools.w(TAG, "AndroidComponentsExtension not found in project: %s", project.path)
                 return@withPlugin
             }
-            registerOfficialInstrumentation(project, androidComponents)
+            val extension = project.extensions.getByType(TraceFixExtension::class.java)
+            registerOfficialInstrumentation(project, extension, androidComponents)
             registered = true
         }
     }
@@ -40,14 +43,26 @@ class TraceFixPlugin : Plugin<Project> {
 
     private fun registerOfficialInstrumentation(
         project: Project,
+        extension: TraceFixExtension,
         androidComponents: AndroidComponentsExtension<*, *, Variant>
     ) {
         LogTools.i(TAG, "register official class instrumentation for project: %s", project.path)
         androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+            if (!extension.isVariantEnabled(variant.name)) {
+                LogTools.i(TAG, "instrumentation skipped for variant: %s", variant.name)
+                return@onVariants
+            }
             variant.instrumentation.transformClassesWith(
                 TraceFixAsmClassVisitorFactory::class.java,
                 InstrumentationScope.PROJECT
-            ) {}
+            ) { parameters ->
+                parameters.includedClassPrefixes.set(extension.includedClassPrefixes)
+                parameters.excludedClassPrefixes.set(extension.excludedClassPrefixes)
+                parameters.traceConstructors.set(extension.traceConstructors)
+                parameters.traceClassInitializers.set(extension.traceClassInitializers)
+                parameters.traceSyntheticMethods.set(extension.traceSyntheticMethods)
+                parameters.traceBridgeMethods.set(extension.traceBridgeMethods)
+            }
             variant.instrumentation.setAsmFramesComputationMode(
                 FramesComputationMode.COMPUTE_FRAMES_FOR_INSTRUMENTED_METHODS
             )
@@ -57,5 +72,6 @@ class TraceFixPlugin : Plugin<Project> {
 
     companion object {
         private const val TAG = "TraceFixPlugin"
+        private const val EXTENSION_NAME = "traceFix"
     }
 }

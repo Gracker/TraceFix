@@ -189,7 +189,7 @@ def isCentralReleaseTask = {
 }
 
 signing {
-    required {
+    required = {
         isCentralReleaseTask()
     }
     if (isCentralReleaseTask()) {

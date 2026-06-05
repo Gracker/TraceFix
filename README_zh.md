@@ -5,28 +5,39 @@
 
 # TraceFix
 
-TraceFix 是一个编译期字节码插桩插件，会在方法前后自动插入 `android.os.Trace.beginSection/endSection`。
+TraceFix 是一个 Android 编译期字节码插桩插件，会在方法前后自动插入成对的 `android.os.Trace.beginSection/endSection`。这些 section 可以在 Perfetto 或其他平台 trace viewer 中看到；TraceFix 只负责增加 App 侧 trace section，不替代 Perfetto、`atrace`、`ProfilingManager` 等采集工具。
+
+## Android 17 基线
+
+TraceFix `0.2.x` 面向 Android 17 / API 37 code base：
+
+| 组件 | 版本 |
+| --- | --- |
+| Artifact | `io.github.gracker:TraceFix:0.2.0` |
+| Android Gradle Plugin | `9.1.1` |
+| Gradle | `9.3.1` |
+| Compile SDK / Target SDK | `37` |
+| Java | `17` |
+
+`0.1.x` 是旧的 AGP 7.4/8.3 兼容线。Android 17 / AGP 9.1.x 项目使用 `0.2.x`；只有旧构建还需要之前兼容矩阵时，才继续使用 `0.1.x`。
 
 ## 先看怎么选
 
 | 你的目标 | 选择 | 看这一节 |
 | --- | --- | --- |
-| 在业务 App 里接入 TraceFix | 远程插件（推荐） | 「远程插件用法」 |
+| 在业务 App 里接入 TraceFix | 远程插件 | 「远程插件用法」 |
 | 在本仓库开发/调试插件 | 本地插件（`mavenLocal`） | 「本地插件用法」 |
-| 验证高低版本兼容性 | 2x2 Demo 矩阵 | 「兼容性验证」 |
+| 验证 Android 17 行为 | trace regression 脚本 | 「兼容性验证」 |
 
-## 远程插件用法（推荐）
+## 远程插件用法
 
-已发布版本：`io.github.gracker:TraceFix:0.1.0`  
-Maven Central 仓库地址：`https://repo1.maven.org/maven2/io/github/gracker/TraceFix/0.1.0/`
+Maven Central artifact：
 
-1. 在 `gradle.properties` 配置版本：
-
-```properties
-TRACEFIX_VERSION=0.1.0
+```groovy
+classpath("io.github.gracker:TraceFix:0.2.0")
 ```
 
-2. 在 module 或 root 的 `build.gradle` 添加插件 classpath：
+module 或 root `build.gradle` 示例：
 
 ```groovy
 buildscript {
@@ -35,40 +46,99 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION}") { changing = true }
+        classpath("io.github.gracker:TraceFix:0.2.0")
     }
 }
-```
 
-3. 在 app module 应用插件：
-
-```groovy
+apply plugin: 'com.android.application'
 apply plugin: 'auto-add-systrace'
 ```
 
-4. 编译后用 Perfetto 查看结果：`https://ui.perfetto.dev/#!/viewer`。
+可选配置：
 
-## 发布到 Maven Central（维护者，Central Portal）
+```groovy
+traceFix {
+    enabled = true
 
-1. 配置 Central Portal Token（任选一种来源）：
+    // include 为空表示全部启用；exclude 优先级高于 include。
+    includedVariants = []
+    excludedVariants = []
+    includedClassPrefixes = []
+    excludedClassPrefixes = [
+        'com.example.generated.'
+    ]
 
-- 环境变量：
+    traceConstructors = true
+    traceClassInitializers = true
+    traceSyntheticMethods = false
+    traceBridgeMethods = false
+}
+```
+
+TraceFix 会跳过 abstract/native 方法，因为它们没有可插桩的方法体。synthetic/bridge 方法默认跳过，避免把编译器生成的方法大量写进 trace；只有明确需要观察编译器生成代码时再打开。
+
+section 名称保留可读的类名/方法名，并追加稳定 hash 后缀，同时限制在 Android trace section 的 127 个 UTF-16 code unit 上限内。
+
+## 本地插件用法
+
+先发布到本地 Maven：
+
+```bash
+./gradlew :android-systrace-plugin:publishToMavenLocal
+```
+
+构建本地 demo：
+
+```bash
+./gradlew -PTRACEFIX_ENABLE_DEMOS=true \
+  :android-systrace-sample-high-local-debug:assembleDebug \
+  :android-systrace-sample-high-local-debug:assembleRelease
+```
+
+demo module 默认不会参与 settings，这样日常开发只构建插件本身，不会被 sample app 配置拖住。
+
+## 兼容性验证
+
+运行 Android 17 trace regression：
+
+```bash
+./scripts/verify-compatibility.sh
+```
+
+脚本会验证：
+
+1. AGP 9.1.1 的本地 Java fixture，debug 和开启 R8 的 release。
+2. 通过 file-backed Maven 仓库拉取插件的远端 Kotlin fixture，debug 和开启 R8 的 release。
+3. 通过 `javap` 做方法级字节码断言，包括普通返回和异常路径。
+4. 边界情况：重载方法、synchronized 方法、长方法名、interface default 方法、abstract class 中的 concrete 方法、跳过 abstract/native 方法、跳过 Kotlin synthetic `$default` 方法。
+
+远端 demo 可以手动这样构建：
+
+```bash
+./gradlew -PTRACEFIX_ENABLE_REMOTE_DEMOS=true \
+  -PTRACEFIX_VERSION_REMOTE=0.2.0-local \
+  -PTRACEFIX_REMOTE_REPO_URL=file://$PWD/build/tracefix-remote-repo \
+  :android-systrace-sample-remote-debug:assembleDebug \
+  :android-systrace-sample-remote-debug:assembleRelease
+```
+
+## 发布到 Maven Central
+
+1. 配置 Central Portal token：
 
 ```bash
 export OSSRH_USERNAME=... # https://central.sonatype.com/usertoken 的 token username
 export OSSRH_PASSWORD=... # https://central.sonatype.com/usertoken 的 token password
 ```
 
-- 或根目录 `local.properties`：
+也可以放在根目录 `local.properties`：
 
 ```properties
 ossrhUsername=...
 ossrhPassword=...
 ```
 
-2. 配置签名（任选一种）：
-
-- 内存私钥：
+2. 配置签名：
 
 ```bash
 export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
@@ -76,33 +146,24 @@ export SIGNING_PASSWORD=...
 export SIGNING_KEY_ID=... # 可选
 ```
 
-- Gradle 传统签名配置（`~/.gradle/gradle.properties` 或 `local.properties`）：
+也支持 Gradle 传统签名配置和系统 GPG：
 
 ```properties
 signing.keyId=...
 signing.password=...
 signing.secretKeyRingFile=/path/to/secring.gpg
-```
 
-- 或使用系统 GPG：
-
-```properties
+# 或
 useGpgCmd=true
 ```
 
-3. 确认 namespace（当与 `publishedGroupId` 不一致时再配置）：
-
-```bash
-export TRACEFIX_CENTRAL_NAMESPACE=io.github.gracker
-```
-
-4. 先做配置检查：
+3. 先做发版配置检查：
 
 ```bash
 ./gradlew :android-systrace-plugin:verifyReleasePublishConfig
 ```
 
-5. 按最新流程发布：
+4. 发布 release artifact：
 
 ```bash
 ./gradlew :android-systrace-plugin:publishReleaseToCentral
@@ -114,55 +175,8 @@ export TRACEFIX_CENTRAL_NAMESPACE=io.github.gracker
 ./gradlew :android-systrace-plugin:publishReleaseToSonatype
 ```
 
-## 本地插件用法（仓库开发）
-
-1. 先发布到本地 Maven：
+发布后验证 Maven Central：
 
 ```bash
-./gradlew :android-systrace-plugin:publishToMavenLocal
+curl -I https://repo1.maven.org/maven2/io/github/gracker/TraceFix/0.2.0/TraceFix-0.2.0.pom
 ```
-
-2. 使用本地 Demo 模块验证：
-- 低版本 AGP 本地插件 Demo：`android-systrace-sample-local-debug`
-- 高版本 AGP 本地插件 Demo：`android-systrace-sample-high-local-debug`
-
-## 兼容性验证（2x2）
-
-一条命令跑完高低版本 × 本地/远程插件：
-
-```bash
-LOW_AGP_VERSION=7.4.2 HIGH_AGP_VERSION=8.3.2 ./scripts/verify-compatibility.sh
-```
-
-脚本会检查：
-
-1. 已插入 `Trace.beginSection`。
-2. 已插入 `Trace.endSection`。
-3. 异常路径可配对（变换后 `traceExceptionDemo` 存在 `athrow` 路径）。
-
-## Demo 矩阵
-
-| AGP | 本地插件 | 远程插件 |
-| --- | --- | --- |
-| 7.4.2 | `android-systrace-sample-local-debug` | `android-systrace-sample-low-remote-debug` |
-| 8.3.2 | `android-systrace-sample-high-local-debug` | `android-systrace-sample-remote-debug` |
-
-远程 Demo 额外注意：
-
-1. 同步/构建时需要开启远程 Demo 模块：
-
-```bash
--PTRACEFIX_ENABLE_REMOTE_DEMOS=true
-```
-
-2. 需要指定远程插件版本和仓库地址：
-
-```bash
--PTRACEFIX_VERSION_REMOTE=1.0 -PTRACEFIX_REMOTE_REPO_URL=file://$PWD/build/tracefix-remote-repo
-```
-
-## 版本兼容策略
-
-1. 用 `TRACEFIX_AGP_VERSION` 切换仓库构建使用的 AGP。
-2. 用 `TRACEFIX_AGP_API_VERSION` 指定插件编译期 `gradle-api` 版本（默认跟随 `TRACEFIX_AGP_VERSION`，兜底 `7.4.2`）。
-3. 对于更老的 AGP（只有 Transform API），建议单独维护 legacy 分支或 artifact。

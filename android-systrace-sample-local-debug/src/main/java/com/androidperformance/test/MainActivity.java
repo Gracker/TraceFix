@@ -1,39 +1,33 @@
 package com.androidperformance.test;
 
+import android.app.Activity;
 import android.os.Bundle;
-import android.util.Log;
+import android.widget.TextView;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = "MainActivity";
+public class MainActivity extends Activity implements DefaultTraceInterface {
+    private static final int STATIC_VALUE = staticInitializer();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(new TextView(this));
 
         testSleep();
         traceExceptionDemo(false);
+        overloadedDemo(1);
+        overloadedDemo("trace");
+        synchronizedDemo(2);
+        defaultInterfaceMethod();
+        new ConcreteFixture().concreteBaseMethod();
         testLongMethodNameXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXGGGGGGGGG();
     }
 
-    private void testSleep() {
-        try {
-            Thread.sleep(800);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    private static int staticInitializer() {
+        return 1;
     }
 
-    private void testLongMethodNameXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXGGGGGGGGG() {
-        Log.v(TAG, "testLongMethodNameXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXGGGGGGGGG");
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    private void testSleep() {
+        Thread.yield();
     }
 
     private int traceExceptionDemo(boolean shouldThrow) {
@@ -43,4 +37,42 @@ public class MainActivity extends AppCompatActivity {
         return 42;
     }
 
+    private int overloadedDemo(int value) {
+        return value + STATIC_VALUE;
+    }
+
+    private String overloadedDemo(String value) {
+        return value + STATIC_VALUE;
+    }
+
+    private synchronized int synchronizedDemo(int value) {
+        return value + 1;
+    }
+
+    private int testLongMethodNameXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXGGGGGGGGG() {
+        return 7;
+    }
+
+    private native void nativeMethod();
+
+    abstract static class AbstractFixture {
+        int concreteBaseMethod() {
+            return 7;
+        }
+
+        abstract int abstractMethod();
+    }
+
+    static class ConcreteFixture extends AbstractFixture {
+        @Override
+        int abstractMethod() {
+            return 9;
+        }
+    }
+}
+
+interface DefaultTraceInterface {
+    default int defaultInterfaceMethod() {
+        return 3;
+    }
 }

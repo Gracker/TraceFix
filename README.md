@@ -5,28 +5,39 @@
 
 # TraceFix
 
-TraceFix instruments bytecode at compile time and injects `android.os.Trace.beginSection/endSection` around methods.
+TraceFix instruments Android app bytecode at compile time and injects paired `android.os.Trace.beginSection/endSection` calls around methods. These sections show up in Perfetto or other platform trace viewers; TraceFix only adds app-side trace sections and does not replace capture tooling such as Perfetto, `atrace`, or `ProfilingManager`.
+
+## Android 17 Baseline
+
+TraceFix `0.2.x` targets the Android 17 / API 37 code base:
+
+| Component | Version |
+| --- | --- |
+| Artifact | `io.github.gracker:TraceFix:0.2.0` |
+| Android Gradle Plugin | `9.1.1` |
+| Gradle | `9.3.1` |
+| Compile SDK / Target SDK | `37` |
+| Java | `17` |
+
+The `0.1.x` line was the legacy AGP 7.4/8.3 compatibility line. Use `0.2.x` for Android 17 / AGP 9.1.x projects, and keep `0.1.x` only for older builds that still need the previous compatibility matrix.
 
 ## Choose This First
 
 | Your Goal | Choose | Use This |
 | --- | --- | --- |
-| Integrate TraceFix into your app | Remote plugin (recommended) | "Remote Plugin" section |
-| Develop or debug plugin in this repo | Local plugin (`mavenLocal`) | "Local Plugin" section |
-| Verify compatibility across AGP versions | 2x2 demo matrix | "Compatibility Verification" section |
+| Integrate TraceFix into your app | Remote plugin | "Remote Plugin" |
+| Develop or debug plugin in this repo | Local plugin (`mavenLocal`) | "Local Plugin" |
+| Verify Android 17 behavior | Trace regression script | "Compatibility Verification" |
 
-## Remote Plugin (Recommended)
+## Remote Plugin
 
-Latest published artifact: `io.github.gracker:TraceFix:0.1.0`  
-Maven Central repository: `https://repo1.maven.org/maven2/io/github/gracker/TraceFix/0.1.0/`
+Maven Central artifact:
 
-1. Set plugin version in `gradle.properties`:
-
-```properties
-TRACEFIX_VERSION=0.1.0
+```groovy
+classpath("io.github.gracker:TraceFix:0.2.0")
 ```
 
-2. Add plugin classpath in module or root `build.gradle`:
+Example module or root `build.gradle`:
 
 ```groovy
 buildscript {
@@ -35,40 +46,99 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("io.github.gracker:TraceFix:${TRACEFIX_VERSION}") { changing = true }
+        classpath("io.github.gracker:TraceFix:0.2.0")
     }
 }
-```
 
-3. Apply plugin in app module:
-
-```groovy
+apply plugin: 'com.android.application'
 apply plugin: 'auto-add-systrace'
 ```
 
-4. Build your app and inspect traces in Perfetto (`https://ui.perfetto.dev/#!/viewer`).
+Optional configuration:
 
-## Publish To Maven Central (Maintainers, Central Portal)
+```groovy
+traceFix {
+    enabled = true
 
-1. Configure Central Portal token credentials (choose one source):
+    // Empty include lists mean "all"; excludes win over includes.
+    includedVariants = []
+    excludedVariants = []
+    includedClassPrefixes = []
+    excludedClassPrefixes = [
+        'com.example.generated.'
+    ]
 
-- Environment variables:
+    traceConstructors = true
+    traceClassInitializers = true
+    traceSyntheticMethods = false
+    traceBridgeMethods = false
+}
+```
+
+TraceFix skips abstract and native methods because they have no instrumentable method body. Synthetic and bridge methods are skipped by default to avoid adding noisy sections for compiler-generated methods; enable them only when you intentionally want compiler-generated code in traces.
+
+Section names are readable method names with a stable hash suffix, capped to Android's 127 UTF-16 code-unit trace section limit.
+
+## Local Plugin
+
+Publish the plugin to local Maven:
+
+```bash
+./gradlew :android-systrace-plugin:publishToMavenLocal
+```
+
+Build local demo modules with:
+
+```bash
+./gradlew -PTRACEFIX_ENABLE_DEMOS=true \
+  :android-systrace-sample-high-local-debug:assembleDebug \
+  :android-systrace-sample-high-local-debug:assembleRelease
+```
+
+Demo modules are not included by default, so the plugin can build without pulling sample app configuration into normal development.
+
+## Compatibility Verification
+
+Run the Android 17 trace regression:
+
+```bash
+./scripts/verify-compatibility.sh
+```
+
+The script verifies:
+
+1. Local Java fixture on AGP 9.1.1, debug and minified release.
+2. Remote Kotlin fixture through a file-backed Maven repository, debug and minified release.
+3. Method-level bytecode instrumentation via `javap`, including normal returns and exception paths.
+4. Edge cases: overloads, synchronized methods, long method names, interface default methods, concrete methods in abstract classes, skipped abstract/native methods, and skipped Kotlin synthetic `$default` methods.
+
+Remote demo modules can be built manually with:
+
+```bash
+./gradlew -PTRACEFIX_ENABLE_REMOTE_DEMOS=true \
+  -PTRACEFIX_VERSION_REMOTE=0.2.0-local \
+  -PTRACEFIX_REMOTE_REPO_URL=file://$PWD/build/tracefix-remote-repo \
+  :android-systrace-sample-remote-debug:assembleDebug \
+  :android-systrace-sample-remote-debug:assembleRelease
+```
+
+## Publish To Maven Central
+
+1. Configure Central Portal token credentials:
 
 ```bash
 export OSSRH_USERNAME=... # token username from https://central.sonatype.com/usertoken
 export OSSRH_PASSWORD=... # token password from https://central.sonatype.com/usertoken
 ```
 
-- Or root `local.properties`:
+Or use root `local.properties`:
 
 ```properties
 ossrhUsername=...
 ossrhPassword=...
 ```
 
-2. Configure signing (choose one source):
-
-- In-memory key:
+2. Configure signing:
 
 ```bash
 export SIGNING_KEY='-----BEGIN PGP PRIVATE KEY BLOCK-----...'
@@ -76,33 +146,24 @@ export SIGNING_PASSWORD=...
 export SIGNING_KEY_ID=... # optional
 ```
 
-- Gradle legacy signing properties (`~/.gradle/gradle.properties` or `local.properties`):
+Legacy Gradle signing properties and system GPG are also supported:
 
 ```properties
 signing.keyId=...
 signing.password=...
 signing.secretKeyRingFile=/path/to/secring.gpg
-```
 
-- Or use system GPG:
-
-```properties
+# or
 useGpgCmd=true
 ```
 
-3. Confirm namespace (optional when it equals `publishedGroupId`):
-
-```bash
-export TRACEFIX_CENTRAL_NAMESPACE=io.github.gracker
-```
-
-4. Verify publish configuration:
+3. Verify publish configuration:
 
 ```bash
 ./gradlew :android-systrace-plugin:verifyReleasePublishConfig
 ```
 
-5. Publish release artifact (latest flow):
+4. Publish release artifact:
 
 ```bash
 ./gradlew :android-systrace-plugin:publishReleaseToCentral
@@ -114,55 +175,8 @@ Compatibility alias:
 ./gradlew :android-systrace-plugin:publishReleaseToSonatype
 ```
 
-## Local Plugin (For Repo Development)
-
-1. Publish plugin to local Maven:
+After publishing, verify Maven Central:
 
 ```bash
-./gradlew :android-systrace-plugin:publishToMavenLocal
+curl -I https://repo1.maven.org/maven2/io/github/gracker/TraceFix/0.2.0/TraceFix-0.2.0.pom
 ```
-
-2. Use local demo modules:
-- Low AGP local demo: `android-systrace-sample-local-debug`
-- High AGP local demo: `android-systrace-sample-high-local-debug`
-
-## Compatibility Verification (2x2)
-
-Run full verification (low/high AGP x local/remote plugin):
-
-```bash
-LOW_AGP_VERSION=7.4.2 HIGH_AGP_VERSION=8.3.2 ./scripts/verify-compatibility.sh
-```
-
-Checks included:
-
-1. `Trace.beginSection` was injected.
-2. `Trace.endSection` was injected.
-3. Exception path is handled (`athrow` path exists in transformed `traceExceptionDemo`).
-
-## Demo Matrix
-
-| AGP | Local Plugin | Remote Plugin |
-| --- | --- | --- |
-| 7.4.2 | `android-systrace-sample-local-debug` | `android-systrace-sample-low-remote-debug` |
-| 8.3.2 | `android-systrace-sample-high-local-debug` | `android-systrace-sample-remote-debug` |
-
-Notes for remote demo modules:
-
-1. Enable remote demo modules when syncing/building:
-
-```bash
--PTRACEFIX_ENABLE_REMOTE_DEMOS=true
-```
-
-2. Provide remote artifact version and repository URL:
-
-```bash
--PTRACEFIX_VERSION_REMOTE=1.0 -PTRACEFIX_REMOTE_REPO_URL=file://$PWD/build/tracefix-remote-repo
-```
-
-## Version Strategy
-
-1. `TRACEFIX_AGP_VERSION` selects AGP used by this repo build.
-2. `TRACEFIX_AGP_API_VERSION` selects plugin compile-time `gradle-api` dependency (defaults to `TRACEFIX_AGP_VERSION`, fallback `7.4.2`).
-3. For pre-instrumentation-era AGP (Transform API only), keep a separate legacy branch/artifact.

@@ -19,8 +19,14 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android 17 SDK
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x gradlew scripts/verify-compatibility.sh
 
       - name: Build all modules
         run: ./gradlew build --no-daemon
+
+      - name: Run Android 17 trace regression
+        run: ./scripts/verify-compatibility.sh

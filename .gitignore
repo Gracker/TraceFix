@@ -3,6 +3,9 @@
 /local.properties
 .DS_Store
 /build
+/android-systrace-plugin/bin/
+/android-systrace-plugin/build/
+/android-systrace-sample-*/build/
 /captures
 .externalNativeBuild
 .cxx

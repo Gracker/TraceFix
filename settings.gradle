@@ -1,9 +1,12 @@
 rootProject.name = 'TraceFix'
-include ':android-systrace-sample-local-debug'
-include ':android-systrace-sample-high-local-debug'
 include ':android-systrace-plugin'
 
+def enableDemos = (gradle.startParameter.projectProperties['TRACEFIX_ENABLE_DEMOS'] ?: 'false').toBoolean()
 def enableRemoteDemos = (gradle.startParameter.projectProperties['TRACEFIX_ENABLE_REMOTE_DEMOS'] ?: 'false').toBoolean()
+if (enableDemos || enableRemoteDemos) {
+    include ':android-systrace-sample-local-debug'
+    include ':android-systrace-sample-high-local-debug'
+}
 if (enableRemoteDemos) {
     include ':android-systrace-sample-remote-debug'
     include ':android-systrace-sample-low-remote-debug'

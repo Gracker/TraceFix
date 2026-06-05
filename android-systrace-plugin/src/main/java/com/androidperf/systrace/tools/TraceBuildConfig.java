@@ -1,6 +1,21 @@
 package com.androidperf.systrace.tools;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class TraceBuildConfig {
+    private final List<String> includedClassPrefixes;
+    private final List<String> excludedClassPrefixes;
+
+    public TraceBuildConfig() {
+        this(Collections.emptyList(), Collections.emptyList());
+    }
+
+    public TraceBuildConfig(List<String> includedClassPrefixes, List<String> excludedClassPrefixes) {
+        this.includedClassPrefixes = normalizePrefixes(includedClassPrefixes);
+        this.excludedClassPrefixes = normalizePrefixes(excludedClassPrefixes);
+    }
 
     /**
      * whether it need to trace by class filename
@@ -9,18 +24,11 @@ public class TraceBuildConfig {
      * @return isNeed
      */
     public boolean isNeedTraceClass(String fileName) {
-        boolean isNeed = true;
-        if (fileName.endsWith(".class")) {
-            for (String unTraceCls : Constants.UN_TRACE_CLASS) {
-                if (fileName.contains(unTraceCls)) {
-                    isNeed = false;
-                    break;
-                }
-            }
-        } else {
-            isNeed = false;
+        if (fileName == null || !fileName.endsWith(".class")) {
+            return false;
         }
-        return isNeed;
+        String simpleName = fileName.substring(0, fileName.length() - ".class".length());
+        return !isGeneratedSimpleClassName(simpleName);
     }
 
     /**
@@ -38,7 +46,42 @@ public class TraceBuildConfig {
         String simpleClassName = separatorIndex >= 0
                 ? normalizedClassName.substring(separatorIndex + 1)
                 : normalizedClassName;
-        return isNeedTraceClass(simpleClassName + ".class");
+        if (!isNeedTraceClass(simpleClassName + ".class")) {
+            return false;
+        }
+        if (!includedClassPrefixes.isEmpty() && !startsWithAny(normalizedClassName, includedClassPrefixes)) {
+            return false;
+        }
+        return !startsWithAny(normalizedClassName, excludedClassPrefixes);
     }
 
+    public static boolean isGeneratedSimpleClassName(String simpleClassName) {
+        return "R".equals(simpleClassName)
+                || simpleClassName.startsWith("R$")
+                || "Manifest".equals(simpleClassName)
+                || simpleClassName.startsWith("Manifest$")
+                || "BuildConfig".equals(simpleClassName);
+    }
+
+    private static List<String> normalizePrefixes(List<String> prefixes) {
+        if (prefixes == null || prefixes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> normalizedPrefixes = new ArrayList<>();
+        for (String prefix : prefixes) {
+            if (prefix != null && prefix.trim().length() > 0) {
+                normalizedPrefixes.add(prefix.trim().replace('/', '.'));
+            }
+        }
+        return normalizedPrefixes;
+    }
+
+    private static boolean startsWithAny(String className, List<String> prefixes) {
+        for (String prefix : prefixes) {
+            if (className.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

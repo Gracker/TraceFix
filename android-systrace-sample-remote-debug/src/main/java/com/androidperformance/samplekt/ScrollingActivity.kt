@@ -1,27 +1,34 @@
 package com.androidperformance.samplekt
 
+import android.app.Activity
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import com.google.android.material.appbar.CollapsingToolbarLayout
+import android.widget.TextView
 
-class ScrollingActivity : AppCompatActivity() {
+class ScrollingActivity : Activity(), KotlinDefaultTraceInterface {
+    companion object {
+        private val staticValue = staticInitializer()
+
+        @JvmStatic
+        private fun staticInitializer(): Int = 1
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_scrolling)
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        val toolbarLayout = findViewById<CollapsingToolbarLayout>(R.id.toolbar_layout)
-        setSupportActionBar(toolbar)
-        toolbarLayout.title = title
+        setContentView(TextView(this))
+
         testSleep()
         traceExceptionDemo(false)
+        overloadedDemo(1)
+        overloadedDemo("trace")
+        synchronizedDemo(2)
+        defaultInterfaceMethod()
+        defaultArgDemo()
+        lambdaDemo()
+        ConcreteFixture().concreteBaseMethod()
     }
 
     private fun testSleep() {
-        Thread.sleep(1000)
+        Thread.yield()
     }
 
     private fun traceExceptionDemo(shouldThrow: Boolean): Int {
@@ -31,20 +38,30 @@ class ScrollingActivity : AppCompatActivity() {
         return 42
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_scrolling, menu)
-        return true
+    private fun overloadedDemo(value: Int): Int = value + staticValue
+
+    private fun overloadedDemo(value: String): String = value + staticValue
+
+    @Synchronized
+    private fun synchronizedDemo(value: Int): Int = value + 1
+
+    private fun defaultArgDemo(value: Int = 1): Int = value + 1
+
+    private fun lambdaDemo(): Int {
+        val mapper = { value: Int -> value + 1 }
+        return mapper(1)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-
-        return when (item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
-        }
+    abstract class AbstractFixture {
+        fun concreteBaseMethod(): Int = 7
+        abstract fun abstractMethod(): Int
     }
+
+    class ConcreteFixture : AbstractFixture() {
+        override fun abstractMethod(): Int = 9
+    }
+}
+
+interface KotlinDefaultTraceInterface {
+    fun defaultInterfaceMethod(): Int = 3
 }
