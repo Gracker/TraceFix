@@ -19,6 +19,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.1
+        with:
+          packages: platform-tools
 
       - name: Install Android 17 SDK
         run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
